@@ -138,19 +138,19 @@ export default function Shop() {
           </aside>
 
           <div>
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => setFiltersOpen(true)} className="btn-ghost min-h-10 py-2 lg:hidden">
+            <div className="mb-4 grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+              <button type="button" onClick={() => setFiltersOpen(true)} className="btn-ghost min-h-10 w-full py-2 sm:w-auto lg:hidden">
                 <SlidersHorizontal className="size-4" aria-hidden /> Filters{active.length > 0 && ` (${active.length})`}
               </button>
-              <label className="relative min-w-0 flex-1 sm:max-w-xs">
+              <label className="relative order-first col-span-2 min-w-0 sm:order-none sm:col-auto sm:flex-1 sm:max-w-xs">
                 <span className="sr-only">Search in shop</span>
                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden />
                 <input type="search" value={q} onChange={(e) => set('q', e.target.value || null)} placeholder="Search products" className="input min-h-10 rounded-full py-2 pl-9" maxLength={80} />
               </label>
               <p className="ml-auto hidden text-sm text-muted sm:block" aria-live="polite">{!loading && `${shown.length} product${shown.length === 1 ? '' : 's'}`}</p>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex min-w-0 items-center gap-2 text-sm">
                 <span className="hidden text-muted sm:inline">Sort</span>
-                <select value={sort} onChange={(e) => set('sort', e.target.value === 'featured' ? null : e.target.value)} className="input min-h-10 w-auto py-2 pr-8" aria-label="Sort products">
+                <select value={sort} onChange={(e) => set('sort', e.target.value === 'featured' ? null : e.target.value)} className="input min-h-10 w-full py-2 pr-8 sm:w-auto" aria-label="Sort products">
                   {Object.entries(SORTS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </label>

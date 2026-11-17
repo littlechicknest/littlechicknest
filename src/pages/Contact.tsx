@@ -34,10 +34,10 @@ export default function Contact() {
   return (
     <div className="container-x pt-6">
       <Breadcrumbs items={[['Contact us']]} />
-      <section className="relative overflow-hidden rounded-[1.25rem] border border-line">
-        <img src={`${BASE}products/hoodie-honey.webp`} alt="" className="absolute inset-0 size-full object-cover object-[70%_30%]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#fffaf0] via-[#fffaf0]/92 to-[#fffaf0]/0" />
-        <div className="relative max-w-xl px-6 py-12 sm:px-12 sm:py-16">
+      <section className="relative overflow-hidden rounded-[1.25rem] border border-line bg-[#fffaf0]">
+        <img src={`${BASE}banners/contact-man.webp`} alt="" className="h-48 w-full object-cover object-[50%_15%] md:absolute md:inset-y-0 md:right-0 md:h-full md:w-[55%] md:object-[20%_20%]" />
+        <div className="absolute inset-0 hidden bg-gradient-to-r from-[#fffaf0] from-45% to-[#fffaf0]/0 to-62% md:block" />
+        <div className="relative max-w-md px-6 py-10 sm:px-12 md:py-16 lg:max-w-lg">
           <p className="text-sm font-bold tracking-widest text-olive uppercase">Get in touch</p>
           <h1 className="mt-2 text-3xl sm:text-[2.6rem] sm:leading-tight">We’d love to hear from you!</h1>
           <p className="mt-3 text-ink/80">A question about an order, sizing, or just want to say hello? Our small team reads every message.</p>

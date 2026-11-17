@@ -62,7 +62,7 @@ export default function Login() {
     <div className="container-x py-8 sm:py-12">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[1.25rem] border border-line bg-paper shadow-[var(--shadow-soft)] md:grid-cols-2">
         <div className="relative hidden md:block">
-          <img src={`${import.meta.env.BASE_URL}products/hoodie-sage.webp`} alt="" className="absolute inset-0 size-full object-cover" />
+          <img src={`${import.meta.env.BASE_URL}banners/login-hoodie.webp`} alt="" className="absolute inset-0 size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-olive/85 via-olive/25 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-8 text-white">
             <p className="script text-3xl text-yolk">Welcome to the nest</p>

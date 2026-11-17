@@ -16,7 +16,7 @@ const SLIDES = [
     accent: 'Cosy hoodies in soft, earthy colours.',
     text: 'Heavyweight fleece with our little chick embroidered on the chest. Made to order, so nothing goes to waste.',
     cta: ['/shop?category=Women', "Shop women's"], cta2: ['/shop?category=Men', "Shop men's"],
-    image: 'products/hoodie-beige.webp', alt: 'Woman wearing a beige Little Chick Nest hoodie', pos: 'object-[50%_20%]',
+    image: 'banners/hero-hoodie.webp', alt: 'Woman wearing a cream Little Chick Nest hoodie with the chick logo embroidered on the chest', pos: 'object-[50%_30%]',
   },
   {
     kicker: 'Embroidered caps',
@@ -24,7 +24,7 @@ const SLIDES = [
     accent: 'big smiles.',
     text: 'Washed cotton twill, a brass buckle and our chick stitched in mustard and olive. One size fits most.',
     cta: ['/shop?category=Accessories', 'Shop accessories'], cta2: ['/shop?category=Kids', "Kids' caps"],
-    image: 'banners/cap-hero.webp', alt: 'Cream cap embroidered with the Little Chick Nest logo', pos: 'object-center',
+    image: 'banners/hero-cap.webp', alt: 'Cream cap embroidered with the Little Chick Nest logo', pos: 'object-center',
   },
   {
     kicker: 'For slow mornings',
@@ -32,7 +32,7 @@ const SLIDES = [
     accent: 'Support our flock.',
     text: 'Stoneware mugs and gift boxes for anyone who loves our chicks. Every order helps feed and care for them.',
     cta: ['/shop?q=mug', 'Shop mugs'], cta2: ['/shop?q=gift', 'Gift ideas'],
-    image: 'banners/mug-scene.webp', alt: 'Olive Little Chick Nest mug on a wooden coaster next to a gift box', pos: 'object-[30%_50%]',
+    image: 'banners/hero-mug.webp', alt: 'Cream Little Chick Nest mug on a wooden table', pos: 'object-center',
   },
 ] as const
 
@@ -68,7 +68,7 @@ function Hero() {
             </div>
           ))}
         </div>
-        <div className="relative order-1 h-[260px] overflow-hidden sm:h-[340px] md:order-2 md:h-auto">
+        <div className="relative order-1 aspect-[4/3] overflow-hidden sm:aspect-[3/2] md:order-2 md:aspect-auto">
           {SLIDES.map((sl, n) => (
             <img key={sl.image} src={`${BASE}${sl.image}`} alt={n === i ? sl.alt : ''} aria-hidden={n !== i}
               fetchPriority={n === 0 ? 'high' : 'low'} loading={n === 0 ? 'eager' : 'lazy'}
@@ -117,7 +117,7 @@ function CategoryCircles({ counts }: { counts: Record<string, number> }) {
 }
 
 function StoryBanner() {
-  const pics = [['products/hoodie-sage.webp', 'Sage hoodie'], ['products/cap-signature.webp', 'Embroidered cap'], ['products/mug-olive.webp', 'Olive mug']]
+  const pics = [['banners/story-hoodie.webp', 'Cream hoodie with the chick logo'], ['banners/story-cap.webp', 'Embroidered cap'], ['banners/story-mug.webp', 'Mug with the chick logo']]
   return (
     <section className="my-6 grid grid-cols-1 items-center gap-6 overflow-hidden rounded-[1.25rem] border border-line bg-[#fffaf2] p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_1.1fr]">
       <div className="px-2 py-4 sm:px-4">

@@ -28,7 +28,7 @@ export function About() {
       </PageHeader>
       <div className="container-x space-y-8">
         <section className="grid items-center gap-8 overflow-hidden rounded-[1.25rem] border border-line bg-paper shadow-[var(--shadow-soft)] md:grid-cols-2">
-          <img src={`${BASE}banners/mug-scene.webp`} alt="Olive Little Chick Nest mug beside a kraft gift box" loading="lazy" className="aspect-[4/3] size-full object-cover" />
+          <img src={`${BASE}banners/about-mug.webp`} alt="Little Chick Nest mug on a wooden shelf" loading="lazy" className="aspect-[4/3] size-full object-cover" />
           <div className="space-y-4 p-6 text-ink/85 sm:p-10">
             <h2 className="text-2xl sm:text-3xl">A calm little corner of the internet</h2>
             <p>We started Little Chick Nest so families could slow down and watch our chicks grow from day one: eating, sleeping, exploring and growing up.</p>
