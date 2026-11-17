@@ -111,7 +111,8 @@ export default function Overview() {
 function RevenueChart({ days }: { days: Day[] }) {
   const [hover, setHover] = useState<number | null>(null)
   const W = 720, H = 220, pad = { l: 48, r: 8, t: 8, b: 24 }
-  const max = Math.max(1, ...days.map((d) => d.revenue))
+  // floor of $10 keeps ticks whole ($0/$5/$10) when there are no sales
+  const max = Math.max(10, ...days.map((d) => d.revenue))
   const nice = niceMax(max)
   const bw = (W - pad.l - pad.r) / days.length
   const y = (v: number) => pad.t + (H - pad.t - pad.b) * (1 - v / nice)
@@ -160,7 +161,7 @@ function RevenueChart({ days }: { days: Day[] }) {
 
 const niceMax = (v: number) => {
   const p = 10 ** Math.floor(Math.log10(v))
-  return [1, 2, 2.5, 5, 10].map((m) => m * p).find((m) => m >= v) ?? v
+  return [1, 2, 5, 10].map((m) => m * p).find((m) => m >= v) ?? v
 }
 const compact = (v: number) => (v >= 1000 ? `$${(v / 1000).toFixed(v % 1000 ? 1 : 0)}k` : `$${Math.round(v)}`)
 const roundTop = (x: number, y: number, w: number, h: number, r: number) =>

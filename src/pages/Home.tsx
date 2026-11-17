@@ -50,8 +50,8 @@ function Hero() {
   return (
     <section aria-roledescription="carousel" aria-label="Featured collections" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       className="relative overflow-hidden rounded-[1.25rem] border border-line bg-paper shadow-[var(--shadow-soft)]">
-      <div className="grid grid-cols-1 min-h-[460px] md:grid-cols-[minmax(0,1fr)_1.1fr]">
-        <div key={`t${i}`} className="relative z-10 order-2 flex animate-fade-up flex-col justify-center px-6 pt-2 pb-16 sm:px-10 md:order-1 md:py-14 lg:px-12">
+      <div className="grid grid-cols-1 md:h-[480px] md:grid-cols-[minmax(0,1fr)_1.1fr]">
+        <div key={`t${i}`} className="relative z-10 order-2 flex animate-fade-up flex-col justify-center px-6 pt-2 pb-16 sm:px-10 md:order-1 md:py-10 lg:px-12">
           <p className="script text-2xl">{s.kicker}</p>
           <h1 className="mt-1 text-[2.4rem] leading-[1.08] sm:text-5xl xl:text-[3.4rem]">
             {s.title}<br /><span className="text-orange">{s.accent}</span>
@@ -63,7 +63,7 @@ function Hero() {
           </div>
           <p className="mt-6 flex items-center gap-2 text-[13px] text-muted"><Heart className="size-4 fill-orange text-orange" aria-hidden /> Thank you for supporting our flock!</p>
         </div>
-        <div className="relative order-1 aspect-[4/3] md:order-2 md:aspect-auto">
+        <div className="relative order-1 h-[260px] overflow-hidden sm:h-[340px] md:order-2 md:h-[480px]">
           {SLIDES.map((sl, n) => (
             <img key={sl.image} src={`${BASE}${sl.image}`} alt={n === i ? sl.alt : ''} aria-hidden={n !== i}
               fetchPriority={n === 0 ? 'high' : 'low'} loading={n === 0 ? 'eager' : 'lazy'}
@@ -146,7 +146,7 @@ function Why() {
       <div className="px-2 pb-4 lg:pr-6">
         <div className="flex items-center justify-between gap-4">
           <h2 id="why" className="text-2xl sm:text-3xl">Why families love our shop</h2>
-          <img src={`${BASE}img/logo.png`} alt="" width={96} height={74} className="hidden h-16 w-auto sm:block" />
+          <img src={`${BASE}img/logo.png`} alt="" width={96} height={60} className="hidden h-16 w-auto sm:block" />
         </div>
         <ul className="mt-6 grid gap-5 sm:grid-cols-2">
           {WHY.map(([badge, title, text]) => (

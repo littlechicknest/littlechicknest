@@ -16,7 +16,7 @@ export const MAIN_SITE = 'https://littlechicknest.com'
 
 type NavItem = { to: string; label: string; match: (path: string, cat: string | null) => boolean }
 const NAV: NavItem[] = [
-  { to: '/', label: 'Home', match: (p) => p === '/' },
+  { to: '/', label: 'Shop', match: (p) => p === '/' },
   { to: '/shop?category=Men', label: "Men's", match: (p, c) => p === '/shop' && c === 'Men' },
   { to: '/shop?category=Women', label: "Women's", match: (p, c) => p === '/shop' && c === 'Women' },
   { to: '/shop?category=Kids', label: "Kids'", match: (p, c) => p === '/shop' && c === 'Kids' },
@@ -31,7 +31,7 @@ const NAV_2: NavItem[] = [
 ]
 
 export const Logo = ({ className = 'h-14' }: { className?: string }) => (
-  <img src={`${BASE}img/logo.png`} alt="Little Chick Nest" width={343} height={266} className={`${className} w-auto`} />
+  <img src={`${BASE}img/logo.png`} alt="Little Chick Nest" width={400} height={256} className={`${className} w-auto`} />
 )
 
 function useNavState() {
@@ -58,25 +58,27 @@ function NavList({ items, onPick }: { items: NavItem[]; onPick?: () => void }) {
   )
 }
 
-/** Desktop sidebar, same structure as littlechicknest.com. */
-function Sidebar() {
+/** Desktop horizontal nav bar under the header row. */
+function DesktopNav() {
+  const { pathname, cat } = useNavState()
+  const link = (n: NavItem, small = false) => {
+    const active = n.match(pathname, cat)
+    return (
+      <li key={n.label}>
+        <Link to={n.to} aria-current={active ? 'page' : undefined}
+          className={`block rounded-md px-3 py-2 font-semibold tracking-wide uppercase transition-colors ${small ? 'text-[12px]' : 'text-[13px]'} ${active ? 'bg-orange text-white' : small ? 'text-muted hover:text-orange-2' : 'text-ink hover:bg-orange-soft hover:text-orange-2'}`}>
+          {n.label}
+        </Link>
+      </li>
+    )
+  }
   return (
-    <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 flex-col overflow-y-auto border-r border-line bg-cream-2 px-5 pt-5 pb-6 lg:flex">
-      <Link to="/" aria-label="Little Chick Nest Shop home" className="mb-6 block px-2"><Logo className="h-[78px]" /></Link>
-      <nav aria-label="Shop" className="flex-1">
-        <NavList items={NAV} />
-        <div className="my-4 border-t border-sand/80" />
-        <NavList items={NAV_2} />
-        <Link to="/shop" className="btn-primary mt-6 ml-2">Shop now</Link>
-      </nav>
-      <div className="mt-8 px-2 text-center">
-        <img src={`${BASE}favicon.png`} alt="" width={44} height={44} className="mx-auto opacity-90" />
-        <p className="mt-2 text-xs text-muted">A cozy online sanctuary made for you.</p>
-        <a href={MAIN_SITE} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-olive hover:text-orange-2">
-          Watch the chicks live <ArrowUpRight className="size-3.5" aria-hidden />
-        </a>
+    <nav aria-label="Shop" className="hidden border-t border-line lg:block">
+      <div className="container-x flex items-center justify-between gap-4 py-1.5">
+        <ul className="flex items-center gap-1">{NAV.map((n) => link(n))}</ul>
+        <ul className="flex items-center gap-1">{NAV_2.map((n) => link(n, true))}</ul>
       </div>
-    </aside>
+    </nav>
   )
 }
 
@@ -181,10 +183,12 @@ function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
   const iconBtn = 'relative grid size-11 place-items-center rounded-full text-olive transition-colors hover:bg-orange-soft hover:text-orange-2'
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream/90 backdrop-blur-md">
-      <div className="container-x flex h-16 items-center gap-2 lg:h-[72px] lg:gap-6">
+      <div className="container-x flex h-16 items-center gap-2 lg:h-[76px] lg:gap-6">
         <button type="button" onClick={onMenu} className={`${iconBtn} -ml-2 lg:hidden`} aria-label="Open menu"><Menu className="size-6" aria-hidden /></button>
-        <Link to="/" className="lg:hidden" aria-label="Little Chick Nest Shop home"><Logo className="h-11" /></Link>
-        <Link to="/" className="hidden font-display text-lg font-bold text-olive lg:block">Little Chick Nest <span className="script ml-0.5 text-xl">Shop</span></Link>
+        <Link to="/" className="flex shrink-0 items-center gap-3" aria-label="Little Chick Nest Shop home">
+          <Logo className="h-11 lg:h-14" />
+          <span className="hidden font-display text-lg font-bold text-olive lg:block">Little Chick Nest <span className="script ml-0.5 text-xl">Shop</span></span>
+        </Link>
 
         <button type="button" onClick={onSearch} className="mx-auto hidden h-11 w-full max-w-sm items-center gap-3 rounded-full border border-sand bg-paper px-4 text-left text-sm text-muted transition hover:border-olive-3 md:flex">
           <Search className="size-4" aria-hidden /> <span className="flex-1">Search hoodies, caps, mugs…</span>
@@ -192,7 +196,6 @@ function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
         </button>
 
         <div className="ml-auto flex items-center gap-0.5 md:ml-0">
-          <a href={MAIN_SITE} target="_blank" rel="noopener noreferrer" className="mr-3 hidden items-center gap-1 text-sm font-medium text-ink hover:text-orange-2 xl:inline-flex">Watch live <ArrowUpRight className="size-3.5" aria-hidden /></a>
           {isAdmin && <Link to="/admin" className="mr-2 hidden rounded-md bg-olive px-3 py-1.5 text-xs font-semibold tracking-wider text-white uppercase hover:bg-olive-2 sm:inline-block">Admin</Link>}
           <button type="button" onClick={onSearch} className={`${iconBtn} md:hidden`} aria-label="Search"><Search className="size-5" aria-hidden /></button>
           <Link to={session ? '/account' : '/login'} className={`${iconBtn} sm:flex sm:w-auto sm:gap-2 sm:rounded-full sm:px-3`} aria-label={session ? 'My account' : 'Sign in'}>
@@ -208,6 +211,7 @@ function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
           </button>
         </div>
       </div>
+      <DesktopNav />
     </header>
   )
 }
@@ -296,8 +300,8 @@ function Footer() {
               <Link to="/privacy-policy" className="hover:text-orange-2">Privacy Policy</Link>
               <Link to="/cookie-policy" className="hover:text-orange-2">Cookie Policy</Link>
             </nav>
-            <p className="flex items-center gap-1.5" aria-label="We accept Visa, Mastercard, American Express, Apple Pay and Google Pay">
-              {['VISA', 'MC', 'AMEX', 'Pay', 'G Pay'].map((c) => <span key={c} className="rounded border border-sand bg-paper px-1.5 py-0.5 text-[10px] font-bold text-olive">{c}</span>)}
+            <p className="inline-flex items-center gap-1.5 rounded-md border border-sand bg-paper px-2.5 py-1 text-[11px] font-medium text-muted" aria-label="Secure payments powered by Stripe">
+              Powered by <span className="font-sans text-[15px] leading-none font-bold tracking-tight text-[#635bff]">stripe</span>
             </p>
           </div>
         </div>
@@ -317,7 +321,7 @@ function CookieNotice() {
     setShow(false)
   }
   return (
-    <div role="region" aria-label="Cookie notice" className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-lg animate-fade-up rounded-xl border border-line bg-paper p-4 shadow-[var(--shadow-lift)] sm:flex sm:items-center sm:gap-4 lg:left-[260px]">
+    <div role="region" aria-label="Cookie notice" className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-lg animate-fade-up rounded-xl border border-line bg-paper p-4 shadow-[var(--shadow-lift)] sm:flex sm:items-center sm:gap-4">
       <p className="text-sm text-ink/85">
         We only use essential storage to keep you signed in and remember your basket. No tracking or ads.{' '}
         <Link to="/cookie-policy" className="font-semibold text-orange-2 underline">Learn more</Link>
@@ -349,14 +353,9 @@ export default function Layout() {
       {/* a button, not href="#main": the URL hash belongs to the router */}
       <button type="button" onClick={() => document.getElementById('main')?.focus()} className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[90] focus:rounded focus:bg-white focus:px-3 focus:py-2">Skip to content</button>
       <AnnouncementBar />
-      <div className="flex">
-        <Sidebar />
-        <div className="min-w-0 flex-1">
-          <TopBar onMenu={() => setMenu(true)} onSearch={() => setSearch(true)} />
-          <main id="main" tabIndex={-1} className="min-h-[60vh] focus:outline-none"><Outlet /></main>
-          <Footer />
-        </div>
-      </div>
+      <TopBar onMenu={() => setMenu(true)} onSearch={() => setSearch(true)} />
+      <main id="main" tabIndex={-1} className="min-h-[60vh] focus:outline-none"><Outlet /></main>
+      <Footer />
       <MobileMenu open={menu} onClose={closeMenu} />
       <SearchDialog open={search} onClose={closeSearch} />
       <CartDrawer />
