@@ -12,10 +12,10 @@ const Mail = () => <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
 function LegalPage({ title, children }: { title: string; children: ReactNode }) {
   useTitle(title)
   return (
-    <>
+    <div className="mx-auto max-w-5xl">
       <PageHeader eyebrow="The small print" title={title} crumbs={[[title]]}>Last updated {UPDATED}</PageHeader>
-      <article className="container-x"><div className="card prose-legal max-w-3xl p-6 sm:p-10">{children}</div></article>
-    </>
+      <article className="container-x"><div className="card prose-legal p-6 sm:p-10">{children}</div></article>
+    </div>
   )
 }
 
@@ -223,7 +223,7 @@ export function NotFoundContent() {
   return (
     <div className="container-x grid min-h-[60vh] place-items-center py-12 text-center">
       <div>
-        <img src={`${BASE}favicon.png`} alt="" width={72} height={72} className="mx-auto" />
+        <img src={`${BASE}img/chick.png`} alt="" width={110} height={72} className="mx-auto w-[110px]" />
         <p className="script mt-4 text-3xl">Oops, 404</p>
         <h1 className="mt-1 text-3xl">This chick has wandered off</h1>
         <p className="mt-2 text-muted">We couldn’t find that page. It may have moved, or the link may be wrong.</p>

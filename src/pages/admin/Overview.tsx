@@ -87,7 +87,9 @@ export default function Overview() {
           <h2 className="text-xl">Latest orders</h2>
           <Link to="/admin/orders" className="text-sm font-bold text-orange-2 hover:underline">All orders</Link>
         </div>
-        {recent.length === 0 ? <p className="px-5 pb-5 text-muted">No orders yet.</p> : (
+        {recent.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 px-5 pt-2 pb-8 text-center"><img src={`${import.meta.env.BASE_URL}img/chick.png`} alt="" width={80} height={52} className="w-20" /><p className="text-muted">No orders yet.</p></div>
+        ) : (
           <ul className="divide-y divide-sand">
             {recent.map((o) => (
               <li key={o.id}>

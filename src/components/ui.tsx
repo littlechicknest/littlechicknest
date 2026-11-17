@@ -84,7 +84,7 @@ export function Stars({ value, size = 'size-4' }: { value: number; size?: string
 
 export const Empty = ({ title, icon, children }: { title: string; icon?: ReactNode; children?: ReactNode }) => (
   <div className="card flex flex-col items-center gap-3 px-6 py-14 text-center">
-    {icon ?? <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="" width={52} height={52} className="opacity-90" />}
+    {icon ?? <img src={`${import.meta.env.BASE_URL}img/chick.png`} alt="" width={80} height={52} className="w-20" />}
     <h2 className="text-xl">{title}</h2>
     {children && <div className="max-w-md text-muted">{children}</div>}
   </div>

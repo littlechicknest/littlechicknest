@@ -31,7 +31,7 @@ const NAV_2: NavItem[] = [
 ]
 
 export const Logo = ({ className = 'h-14' }: { className?: string }) => (
-  <img src={`${BASE}img/logo.png`} alt="Little Chick Nest" width={400} height={256} className={`${className} w-auto`} />
+  <img src={`${BASE}img/logo.png`} alt="Little Chick Nest" width={480} height={390} className={`${className} w-auto`} />
 )
 
 function useNavState() {
@@ -186,8 +186,8 @@ function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
       <div className="container-x flex h-16 items-center gap-2 lg:h-[76px] lg:gap-6">
         <button type="button" onClick={onMenu} className={`${iconBtn} -ml-2 lg:hidden`} aria-label="Open menu"><Menu className="size-6" aria-hidden /></button>
         <Link to="/" className="flex shrink-0 items-center gap-3" aria-label="Little Chick Nest Shop home">
-          <Logo className="h-11 lg:h-14" />
-          <span className="hidden font-display text-lg font-bold text-olive lg:block">Little Chick Nest <span className="script ml-0.5 text-xl">Shop</span></span>
+          <Logo className="h-12 lg:h-16" />
+          <span className="script hidden text-2xl lg:block">Shop</span>
         </Link>
 
         <button type="button" onClick={onSearch} className="mx-auto hidden h-11 w-full max-w-sm items-center gap-3 rounded-full border border-sand bg-paper px-4 text-left text-sm text-muted transition hover:border-olive-3 md:flex">
@@ -247,7 +247,7 @@ function Newsletter() {
   }
   return (
     <div className="card grid grid-cols-1 items-center gap-6 px-6 py-7 sm:px-8 md:grid-cols-[auto_minmax(0,1fr)_1.4fr_auto]">
-      <img src={`${BASE}favicon.png`} alt="" width={64} height={64} className="hidden md:block" />
+      <img src={`${BASE}img/chick.png`} alt="" width={84} height={55} className="hidden w-[84px] md:block" />
       <div>
         <p className="font-display text-lg font-bold text-olive">Join our little nest</p>
         <p className="text-sm text-muted">New designs, chick news and the odd treat. No spam.</p>
@@ -279,7 +279,7 @@ function Footer() {
       <div className="mt-10 bg-cream-2">
         <div className="container-x grid grid-cols-1 gap-10 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div className="space-y-3">
-            <Logo className="h-16" />
+            <Logo className="h-24" />
             <p className="max-w-xs text-sm text-muted">The official shop of Little Chick Nest. Wear it. Love it. Support our flock.</p>
             <a href={MAIN_SITE} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-orange-2 hover:text-orange">Visit littlechicknest.com <ArrowUpRight className="size-4" aria-hidden /></a>
           </div>
