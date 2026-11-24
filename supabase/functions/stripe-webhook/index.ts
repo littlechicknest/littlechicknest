@@ -35,7 +35,7 @@ async function markPaid(session: Stripe.Checkout.Session) {
   try {
     console.log(orderId, await submitOrder(orderId))
   } catch (e) {
-    // payment is safe; the error is stored on the order and the hourly sync retries it
+    // payment is safe; the error is stored on the order and the 15-minute sync retries it
     console.error('gelato submit failed', orderId, e instanceof Error ? e.message : e)
   }
 }

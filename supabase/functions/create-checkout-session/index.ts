@@ -1,4 +1,6 @@
 // Creates a pending order priced from the database (never from the browser) and a Stripe Checkout Session.
+import type { Sku } from '../_shared/catalog.ts'
+import { isOutOfStock } from '../_shared/gelato.ts'
 import { isLiveKey, stripe, STRIPE_KEY, webhookSecret } from '../_shared/stripe.ts'
 import { admin, cors, fail, getUser, json, round2, SITE_URL, skuPrice } from '../_shared/util.ts'
 
@@ -73,6 +75,13 @@ Deno.serve(async (req) => {
     const image = variant?.images?.[0] ?? (p.images as string[])[0] ?? variants[0]?.images?.[0] ?? null
     lines.push({ product_id: p.id, title: p.title, color: it.color, size: it.size, quantity: it.quantity, unit_price: unit, image })
   }
+
+  const out = await Promise.all(lines.map((l) => {
+    const sku = (byId.get(l.product_id)!.skus as Sku[]).find((s) => s.color === l.color && s.size === l.size)
+    return sku ? isOutOfStock(sku, l.quantity, address, user.email ?? '') : false
+  }))
+  const gone = lines.find((_, i) => out[i])
+  if (gone) return fail(req, 409, `Sorry, ${[gone.title, gone.color, gone.size].filter(Boolean).join(' / ')} is out of stock for your country right now. Please choose another option.`)
 
   const subtotal = round2(lines.reduce((n, l) => n + l.unit_price * l.quantity, 0))
   const { data: shipCost, error: shipErr } = await admin.rpc('shipping_cost', { p_subtotal: subtotal, p_method: method })

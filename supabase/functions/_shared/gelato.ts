@@ -105,6 +105,24 @@ export async function refreshOrder(o: TrackedOrder): Promise<string> {
 type Address = { name?: string; line1?: string; line2?: string; city?: string; state?: string; postal_code?: string; country?: string; phone?: string }
 type Item = { product_id: string; title: string; color: string | null; size: string | null; quantity: number }
 
+/**
+ * Is this colour/size out of stock for delivery to this address? Stock differs per region, so Gelato is asked with the real address.
+ * If Gelato doesn't answer, the sale goes ahead: the order is sent later and any problem shows on the admin order page.
+ */
+export async function isOutOfStock(sku: Sku, quantity: number, a: Address, email: string): Promise<boolean> {
+  try {
+    const { quotes } = await call<{ quotes: { shipmentMethods: { shipmentMethodUid: string }[] }[] }>(`${ORDERS}:quote`, {
+      orderReferenceId: 'stock-check', customerReferenceId: 'stock-check', currency: 'USD', allowMultipleQuotes: true,
+      recipient: { firstName: 'Stock', lastName: 'Check', addressLine1: a.line1, city: a.city, state: a.state, postCode: a.postal_code, country: a.country, email },
+      products: [{ itemReferenceId: '1', storeProductVariantId: sku.variant_id, productUid: sku.uid, quantity }],
+    }, 1)
+    return quotes.some((q) => q.shipmentMethods.some((m) => m.shipmentMethodUid === 'api_out_of_stock'))
+  } catch (e) {
+    console.error('stock check', e instanceof Error ? e.message : e)
+    return false
+  }
+}
+
 /** Sends a paid order's Gelato items for printing and stores the result. Safe to retry. */
 export async function submitOrder(orderId: string): Promise<string> {
   // claim the order so the Stripe webhook and the timed sync can't both send it
