@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ExternalLink, Gauge, LogOut, MessageSquareText, Package, Settings, Shirt, Star, Upload, Users } from 'lucide-react'
+import { ExternalLink, Gauge, LogOut, MessageSquareText, Package, Settings, Shirt, Star, Users } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router'
 import { Logo } from '../../components/Layout'
 import { useAuth } from '../../context/auth'
@@ -8,7 +8,6 @@ const NAV = [
   { to: '/admin', label: 'Overview', icon: Gauge, end: true },
   { to: '/admin/orders', label: 'Orders', icon: Package },
   { to: '/admin/products', label: 'Products', icon: Shirt },
-  { to: '/admin/import', label: 'CSV import', icon: Upload },
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
   { to: '/admin/messages', label: 'Messages', icon: MessageSquareText },
   { to: '/admin/customers', label: 'Customers', icon: Users },

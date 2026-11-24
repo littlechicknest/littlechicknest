@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import { ProductCarousel } from '../components/Carousel'
 import { MAIN_SITE, TrustBadges } from '../components/Layout'
 import { Alert, useTitle } from '../components/ui'
-import { CATEGORIES, CATEGORY_INFO, categoryLabel, imgSrc, type Category, type Product } from '../lib/shop'
+import { CATEGORIES, CATEGORY_INFO, categoryLabel, imgSrc, inCategory, type Category, type Product } from '../lib/shop'
 import { useProducts } from '../lib/useProducts'
 
 const BASE = import.meta.env.BASE_URL
@@ -178,7 +178,7 @@ export default function Home() {
   const { products, error } = useProducts()
   const byCat = useMemo(() => {
     const out: Record<string, Product[]> = {}
-    for (const p of products ?? []) (out[p.category] ??= []).push(p)
+    for (const c of CATEGORIES) out[c] = (products ?? []).filter((p) => inCategory(p, c))
     // bestsellers first, then newest
     for (const k in out) out[k].sort((a, b) => Number(b.is_featured) - Number(a.is_featured) || b.created_at.localeCompare(a.created_at))
     return out

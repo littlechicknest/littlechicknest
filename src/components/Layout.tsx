@@ -4,7 +4,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
-import { categoryLabel, formatMoney, productImage, imgSrc } from '../lib/shop'
+import { categoryLabel, imgSrc, priceLabel, productImage } from '../lib/shop'
 import { supabase } from '../lib/supabase'
 import { useProducts } from '../lib/useProducts'
 import { CartDrawer } from './CartDrawer'
@@ -143,7 +143,7 @@ function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void })
                   <Link to={`/product/${p.id}`} onClick={onClose} className="flex items-center gap-4 rounded-lg px-2 py-2.5 hover:bg-cream">
                     <span className="size-14 shrink-0 overflow-hidden rounded-md bg-cream-2">{img && <img src={img} alt="" className="size-full object-cover" />}</span>
                     <span className="min-w-0 flex-1"><span className="block truncate font-medium">{p.title}</span><span className="text-xs text-muted">{categoryLabel(p.category)}</span></span>
-                    <span className="font-semibold text-olive">{formatMoney(p.price)}</span>
+                    <span className="font-semibold text-olive">{priceLabel(p)}</span>
                   </Link>
                 </li>
               )

@@ -3,7 +3,11 @@ import type { Json } from './database.types'
 export const CATEGORIES = ['Men', 'Women', 'Kids', 'Accessories'] as const
 export type Category = (typeof CATEGORIES)[number]
 /** "Men's", "Women's", "Kids'", "Accessories" */
-export const categoryLabel = (c: string) => (c === 'Accessories' ? c : c.endsWith('s') ? `${c}'` : `${c}'s`)
+export const categoryLabel = (c: string) => (c === 'Accessories' || c === 'Unisex' ? c : c.endsWith('s') ? `${c}'` : `${c}'s`)
+
+/** Unisex products are listed under both Men and Women. */
+export const inCategory = (p: { category: string }, c: string) =>
+  p.category === c || (p.category === 'Unisex' && (c === 'Men' || c === 'Women'))
 
 export const CATEGORY_INFO: Record<Category, { blurb: string; image: string }> = {
   Men: { blurb: 'Crew sweatshirts, hoodies, tees and caps', image: 'products/man-olive-cap.webp' },
@@ -12,16 +16,20 @@ export const CATEGORY_INFO: Record<Category, { blurb: string; image: string }> =
   Accessories: { blurb: 'Caps, mugs, scarves and gift boxes', image: 'products/mug-olive.webp' },
 }
 
-export type Variant = { color: string; hex?: string; pn?: string; sizes: string[]; images: string[] }
+/** `option` names what `sizes` holds when it isn't sizes (e.g. a design choice). */
+export type Variant = { color: string; hex?: string; option?: string; sizes: string[]; images: string[] }
 
 export type Product = {
   id: string
   title: string
   description: string
   category: string
+  /** lowest price; prices holds every "colour|size" that differs */
   price: number
+  prices: Record<string, number>
   variants: Variant[]
   images: string[]
+  size_guide: string[][][]
   is_featured: boolean
   created_at: string
   rating_avg: number | null
@@ -71,7 +79,7 @@ export const formatMoney = (n: number | string | null | undefined) => money.form
 
 /** Same formula as public.product_price() in SQL; used only for the admin live preview. */
 export const marginPrice = (base: number, marginPercent: number) =>
-  Math.round(base * (1 + marginPercent / 100) * 100) / 100
+  Math.round(Math.round(base * 100) * (100 + marginPercent) / 100) / 100
 
 export type ShopConfig = { shipping_flat: number; free_shipping_over: number; express_shipping: number; checkout_mode: 'test' | 'live' }
 export const DEFAULT_CONFIG: ShopConfig = { shipping_flat: 4.95, free_shipping_over: 75, express_shipping: 12.95, checkout_mode: 'test' }
@@ -106,12 +114,26 @@ export const asVariants = (v: Json): Variant[] =>
         return [{
           color: o.color,
           hex: typeof o.hex === 'string' ? o.hex : undefined,
-          pn: typeof o.pn === 'string' ? o.pn : undefined,
+          option: typeof o.option === 'string' ? o.option : undefined,
           sizes: Array.isArray(o.sizes) ? o.sizes.filter((s): s is string => typeof s === 'string') : [],
           images: Array.isArray(o.images) ? o.images.filter((s): s is string => typeof s === 'string') : [],
         }]
       })
     : []
+
+export const asPrices = (v: Json): Record<string, number> =>
+  v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).map(([k, n]) => [k, Number(n)])) : {}
+
+/** Price of one colour/size, as the server will charge it. */
+export const priceOf = (p: Pick<Product, 'price' | 'prices'>, color?: string | null, size?: string | null) =>
+  p.prices[`${color ?? ''}|${size ?? ''}`] ?? p.price
+
+/** "From $10.28" when the price depends on the colour or size. */
+export const priceLabel = (p: Pick<Product, 'price' | 'prices'>) =>
+  (Object.values(p.prices).some((n) => n !== p.price) ? 'From ' : '') + formatMoney(p.price)
+
+/** "Size XL", but a design choice like "Design Option 1" already reads well on its own. */
+export const sizeText = (s: string) => (/^[\w-]{1,7}$/.test(s) ? `Size ${s}` : s)
 
 export const asItems = (v: Json): OrderItem[] => (Array.isArray(v) ? (v as unknown as OrderItem[]) : [])
 
@@ -122,10 +144,12 @@ export const productImage = (p: Pick<Product, 'images' | 'variants'>, color?: st
 /** All distinct images of a product, first colour first. */
 export const productImages = (p: Pick<Product, 'images' | 'variants'>, color?: string | null) => {
   const v = p.variants.find((x) => x.color === color) ?? p.variants[0]
-  return [...new Set([...(v?.images ?? []), ...p.images])].map(imgSrc).filter((u): u is string => !!u)
+  const own = v?.images ?? []
+  // a colour without photos borrows the first colour's
+  return [...new Set([...own, ...p.images, ...(own.length || p.images.length ? [] : p.variants[0]?.images ?? [])])].map(imgSrc).filter((u): u is string => !!u)
 }
 
-// Customer-facing order steps; Inkthreadable statuses are mapped to these server-side.
+// Customer-facing order steps; Gelato statuses are mapped to these server-side.
 export const ORDER_STEPS = ['paid', 'processing', 'printing', 'shipped', 'delivered'] as const
 export const STATUS_LABEL: Record<string, string> = {
   pending: 'Awaiting payment',

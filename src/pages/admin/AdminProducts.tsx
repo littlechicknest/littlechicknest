@@ -70,15 +70,14 @@ export function AdminProducts() {
     <>
       <AdminTitle title="Products">
         {samples > 0 && <button type="button" onClick={removeSamples} className="btn-ghost py-2 text-red-700"><Trash2 className="size-4" aria-hidden /> Delete {samples} sample products</button>}
-        <Link to="/admin/import" className="btn-ghost py-2">CSV import</Link>
         <Link to="/admin/products/new" className="btn-primary py-2"><Plus className="size-4" aria-hidden /> Add product</Link>
       </AdminTitle>
       <label className="mb-4 block"><span className="sr-only">Search</span>
-        <input className="input" type="search" placeholder="Search by title or Inkthreadable code" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="input" type="search" placeholder="Search by title or Gelato id" value={q} onChange={(e) => setQ(e.target.value)} />
       </label>
       {error && <div className="mb-4"><Alert>{error}</Alert></div>}
       {!rows || margin == null ? <Spinner /> : filtered.length === 0 ? (
-        <p className="card p-8 text-center text-muted">No products yet. Add one or import a CSV of Inkthreadable products.</p>
+        <p className="card p-8 text-center text-muted">No products yet. They appear here after the first Gelato sync, or add one by hand.</p>
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
@@ -131,12 +130,10 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boo
 /* ---------------------------------------------------------------- form */
 
 type FormState = {
-  source: 'inkthreadable' | 'manual'
-  external_product_id: string
+  source: 'gelato' | 'manual'
   title: string
   description: string
   category: string
-  base_price: string
   manual_price: string
   images: string[]
   variants: (Omit<Variant, 'sizes'> & { sizes: string })[]
@@ -147,8 +144,8 @@ type FormState = {
 }
 
 const EMPTY: FormState = {
-  source: 'inkthreadable', external_product_id: '', title: '', description: '', category: 'Men',
-  base_price: '', manual_price: '', images: [], variants: [], print_front: '', print_back: '', is_active: true, is_featured: false,
+  source: 'manual', title: '', description: '', category: 'Men',
+  manual_price: '', images: [], variants: [], print_front: '', print_back: '', is_active: true, is_featured: false,
 }
 
 async function uploadImage(file: File): Promise<string> {
@@ -202,7 +199,7 @@ function ImageList({ urls, onChange, label }: { urls: string[]; onChange: (u: st
         </label>
       </div>
       <div className="mt-2 flex gap-2">
-        <input className="input py-1.5 text-sm" placeholder="…or paste an image URL (e.g. Inkthreadable mockup)" value={url} onChange={(e) => setUrl(e.target.value)} />
+        <input className="input py-1.5 text-sm" placeholder="…or paste an image URL (https://…)" value={url} onChange={(e) => setUrl(e.target.value)} />
         <button type="button" onClick={addUrl} className="btn-ghost shrink-0 py-1.5">Add</button>
       </div>
       {err && <p role="alert" className="mt-1 text-sm text-red-700">{err}</p>}
@@ -215,7 +212,6 @@ export function ProductForm() {
   const isNew = !id || id === 'new'
   useTitle(isNew ? 'Add product' : 'Edit product')
   const navigate = useNavigate()
-  const margin = useMargin()
   const [f, setF] = useState<FormState | null>(isNew ? EMPTY : null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -226,8 +222,8 @@ export function ProductForm() {
       if (error || !data) return setError('Product not found.')
       const pf = (data.print_files ?? {}) as Record<string, string>
       setF({
-        source: data.source as FormState['source'], external_product_id: data.external_product_id ?? '', title: data.title,
-        description: data.description, category: data.category, base_price: data.base_price?.toString() ?? '',
+        source: data.source as FormState['source'], title: data.title,
+        description: data.description, category: data.category,
         manual_price: data.manual_price?.toString() ?? '', images: data.images,
         variants: asVariants(data.variants).map((v) => ({ ...v, sizes: v.sizes.join(', ') })),
         print_front: pf.front ?? '', print_back: pf.back ?? '', is_active: data.is_active, is_featured: data.is_featured,
@@ -243,43 +239,42 @@ export function ProductForm() {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
-    const ink = f.source === 'inkthreadable'
-    const base = Number(f.base_price), manual = Number(f.manual_price)
-    if (ink && (!f.external_product_id.trim() || !(base >= 0) || f.base_price === '')) return setError('Inkthreadable products need a product code and base price.')
-    if (!ink && (f.manual_price === '' || !(manual >= 0))) return setError('Manual products need a price.')
+    const gelato = f.source === 'gelato'
+    const manual = Number(f.manual_price)
+    if (!gelato && (f.manual_price === '' || !(manual >= 0))) return setError('Manual products need a price.')
     for (const u of [f.print_front, f.print_back]) if (u && !safeUrl(u)) return setError('Print file links must be full https:// URLs.')
     const names = f.variants.map((v) => v.color.trim().toLowerCase())
     if (names.some((n) => !n)) return setError('Every colour needs a name.')
     if (new Set(names).size !== names.length) return setError('Colour names must be unique.')
 
-    const payload = {
-      source: f.source,
-      external_product_id: ink ? f.external_product_id.trim() : null,
-      title: f.title.trim(),
-      description: f.description.trim(),
+    const own = { // only the shop decides these; everything else on a Gelato product comes from the sync
       category: f.category,
-      base_price: ink ? Math.round(base * 100) / 100 : null,
-      manual_price: ink ? null : Math.round(manual * 100) / 100,
-      images: f.images,
-      variants: f.variants.map((v) => ({
-        color: v.color.trim(), ...(v.hex && { hex: v.hex }), ...(v.pn?.trim() && { pn: v.pn.trim() }),
-        sizes: v.sizes.split(',').map((s) => s.trim()).filter(Boolean), images: v.images,
-      })) as unknown as Json,
       print_files: { ...(f.print_front && { front: f.print_front }), ...(f.print_back && { back: f.print_back }) },
       is_active: f.is_active,
       is_featured: f.is_featured,
     }
+    const payload = gelato ? own : {
+      ...own,
+      title: f.title.trim(),
+      description: f.description.trim(),
+      manual_price: Math.round(manual * 100) / 100,
+      images: f.images,
+      variants: f.variants.map((v) => ({
+        color: v.color.trim(), ...(v.hex && { hex: v.hex }),
+        sizes: v.sizes.split(',').map((s) => s.trim()).filter(Boolean), images: v.images,
+      })) as unknown as Json,
+    }
     setBusy(true)
     const { error } = isNew
-      ? await supabase.from('products').insert(payload)
+      ? await supabase.from('products').insert({ ...payload, source: 'manual', title: f.title.trim() })
       : await supabase.from('products').update(payload).eq('id', id!)
     setBusy(false)
-    if (error) return setError(error.code === '23505' ? 'Another product already uses that Inkthreadable code.' : error.message)
+    if (error) return setError(error.message)
     invalidateProducts()
     navigate('/admin/products')
   }
 
-  const preview = f.source === 'inkthreadable' && f.base_price !== '' && margin != null ? marginPrice(Number(f.base_price), margin) : null
+  const isGelato = f.source === 'gelato'
 
   return (
     <>
@@ -287,37 +282,20 @@ export function ProductForm() {
       <form onSubmit={submit} className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <section className="card space-y-4 p-5">
-            <fieldset>
-              <legend className="mb-2 text-sm font-bold text-olive">Source</legend>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {([['inkthreadable', 'Inkthreadable product', 'Price = cost + margin. Orders go to Inkthreadable automatically.'], ['manual', 'Manual product', 'You set a fixed price and fulfil it yourself.']] as const).map(([v, t, d]) => (
-                  <label key={v} className={`cursor-pointer rounded-lg border-2 p-3 ${f.source === v ? 'border-olive bg-white' : 'border-sand'}`}>
-                    <input type="radio" name="source" value={v} checked={f.source === v} onChange={() => set('source', v)} className="sr-only" />
-                    <span className="block font-bold text-olive">{t}</span><span className="text-xs text-muted">{d}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <Field label="Title"><input className="input" required maxLength={200} value={f.title} onChange={(e) => set('title', e.target.value)} /></Field>
-            <Field label="Description"><textarea className="input" rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} /></Field>
+            <p className="rounded-lg bg-cream-2/70 p-3 text-sm text-muted">{isGelato
+              ? 'Title, description, photos, colours, sizes and cost come from Gelato and update automatically. Change them in Gelato.'
+              : 'Manual product: you set a fixed price and fulfil it yourself. Gelato products are added by the sync.'}</p>
+            <Field label="Title"><input className="input" required maxLength={200} disabled={isGelato} value={f.title} onChange={(e) => set('title', e.target.value)} /></Field>
+            <Field label="Description"><textarea className="input" rows={5} maxLength={5000} disabled={isGelato} value={f.description} onChange={(e) => set('description', e.target.value)} /></Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Category">
-                <select className="input" value={f.category} onChange={(e) => set('category', e.target.value)}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
+                <select className="input" value={f.category} onChange={(e) => set('category', e.target.value)}>{[...CATEGORIES, 'Unisex'].map((c) => <option key={c}>{c}</option>)}</select>
               </Field>
-              {f.source === 'inkthreadable' ? (
-                <Field label="Inkthreadable product code (pn)"><input className="input font-mono" maxLength={100} value={f.external_product_id} onChange={(e) => set('external_product_id', e.target.value)} /></Field>
-              ) : (
-                <Field label="Price (USD)"><input className="input" type="number" min="0" step="0.01" value={f.manual_price} onChange={(e) => set('manual_price', e.target.value)} /></Field>
-              )}
+              {!isGelato && <Field label="Price (USD)"><input className="input" type="number" min="0" step="0.01" value={f.manual_price} onChange={(e) => set('manual_price', e.target.value)} /></Field>}
             </div>
-            {f.source === 'inkthreadable' && (
-              <Field label="Base cost from Inkthreadable (USD)" hint={preview != null ? `Shop price at current ${margin}% margin: ${formatMoney(preview)}` : undefined}>
-                <input className="input" type="number" min="0" step="0.01" value={f.base_price} onChange={(e) => set('base_price', e.target.value)} />
-              </Field>
-            )}
           </section>
 
-          <section className="card space-y-4 p-5">
+          {!isGelato && <><section className="card space-y-4 p-5">
             <ImageList label="Product images" urls={f.images} onChange={(u) => set('images', u)} />
           </section>
 
@@ -329,19 +307,16 @@ export function ProductForm() {
             {f.variants.length === 0 && <p className="text-sm text-muted">No colours: the product is sold as a single option.</p>}
             {f.variants.map((v, i) => (
               <div key={i} className="space-y-3 rounded-lg border border-sand p-4">
-                <div className="grid gap-3 sm:grid-cols-[1fr_80px_1fr_auto]">
+                <div className="grid gap-3 sm:grid-cols-[1fr_80px_auto]">
                   <Field label="Colour name"><input className="input" required maxLength={40} value={v.color} onChange={(e) => setVariant(i, { color: e.target.value })} /></Field>
                   <Field label="Swatch"><input type="color" className="h-[46px] w-full cursor-pointer rounded-lg border border-sand bg-white p-1" value={v.hex ?? '#cccccc'} onChange={(e) => setVariant(i, { hex: e.target.value })} /></Field>
-                  {f.source === 'inkthreadable'
-                    ? <Field label="Colour code (optional)" hint="Only if this colour has its own pn"><input className="input font-mono" maxLength={100} value={v.pn ?? ''} onChange={(e) => setVariant(i, { pn: e.target.value })} /></Field>
-                    : <span />}
                   <button type="button" onClick={() => set('variants', f.variants.filter((_, j) => j !== i))} className="self-start rounded p-2 text-red-700 hover:bg-red-50 sm:mt-7" aria-label={`Remove colour ${v.color}`}><Trash2 className="size-4" aria-hidden /></button>
                 </div>
                 <Field label="Sizes" hint="Comma separated, e.g. S, M, L, XL. Leave empty for one-size."><input className="input" value={v.sizes} onChange={(e) => setVariant(i, { sizes: e.target.value })} /></Field>
                 <ImageList label={`Images for ${v.color || 'this colour'}`} urls={v.images} onChange={(u) => setVariant(i, { images: u })} />
               </div>
             ))}
-          </section>
+          </section></>}
         </div>
 
         <div className="space-y-6">
@@ -350,10 +325,10 @@ export function ProductForm() {
             <label className="flex items-center justify-between gap-3"><span className="text-sm font-bold">Show in shop</span><Toggle on={f.is_active} label="Show in shop" onChange={(v) => set('is_active', v)} /></label>
             <label className="flex items-center justify-between gap-3"><span className="text-sm font-bold">Featured on home page</span><Toggle on={f.is_featured} label="Featured" onChange={(v) => set('is_featured', v)} /></label>
           </section>
-          {f.source === 'inkthreadable' && (
+          {isGelato && (
             <section className="card space-y-4 p-5">
               <h2 className="text-xl">Print files</h2>
-              <p className="text-xs text-muted">High-resolution PNG links sent to Inkthreadable with each order. Never shown to customers.</p>
+              <p className="text-xs text-muted">Optional. Leave empty to print the design saved in Gelato. Filled in, these PNG links are sent with each order instead. Never shown to customers.</p>
               <Field label="Front design URL"><input className="input" type="url" value={f.print_front} onChange={(e) => set('print_front', e.target.value)} /></Field>
               <Field label="Back design URL"><input className="input" type="url" value={f.print_back} onChange={(e) => set('print_back', e.target.value)} /></Field>
             </section>

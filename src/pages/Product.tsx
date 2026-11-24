@@ -6,7 +6,7 @@ import { Accordion, Alert, Breadcrumbs, Field, Modal, QtyStepper, Spinner, Stars
 import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
-import { categoryLabel, deliveryWindow, formatDate, formatMoney, productImages, type Product as P } from '../lib/shop'
+import { categoryLabel, deliveryWindow, formatDate, formatMoney, priceLabel, priceOf, productImages, type Product as P } from '../lib/shop'
 import { supabase } from '../lib/supabase'
 import { useProducts, useShopConfig } from '../lib/useProducts'
 import NotFound from './NotFound'
@@ -106,7 +106,19 @@ function Gallery({ images, alt }: { images: string[]; alt: string }) {
 
 const ADULT_GUIDE = [['XS', '34–36', '27'], ['S', '36–38', '28'], ['M', '38–40', '29'], ['L', '40–42', '30'], ['XL', '42–44', '31'], ['2XL', '44–46', '32']]
 const KIDS_GUIDE = [['3-4Y', '39–41', '98–104'], ['3-5Y', '39–43', '98–110'], ['5-6Y', '41–45', '110–116'], ['6-8Y', '45–50', '116–128'], ['7-8Y', '45–50', '122–128'], ['9-10Y', '50–55', '134–140'], ['9-12Y', '50–60', '134–152'], ['11-12Y', '55–60', '146–152']]
-function SizeGuide({ sizes }: { sizes: string[] }) {
+function SizeGuide({ sizes, tables }: { sizes: string[]; tables: string[][][] }) {
+  if (tables.length) return (
+    <div className="space-y-5">
+      {tables.map((t, i) => (
+        <div key={i} className="overflow-x-auto rounded-lg border border-line">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-cream-2 text-olive"><tr>{t[0].map((h, n) => <th key={n} className="px-3 py-2.5 font-semibold whitespace-nowrap">{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-line">{t.slice(1).map((r) => <tr key={r[0]}>{r.map((c, n) => <td key={n} className={`px-3 py-2.5 ${n === 0 ? 'font-semibold' : ''}`}>{c}</td>)}</tr>)}</tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  )
   const kids = sizes.some((s) => s.endsWith('Y'))
   const rows = (kids ? KIDS_GUIDE : ADULT_GUIDE).filter(([s]) => sizes.includes(s))
   return (
@@ -137,6 +149,12 @@ function ProductView({ product }: { product: P }) {
   const buyRef = useRef<HTMLDivElement>(null)
   const images = useMemo(() => productImages(product, color), [product, color])
   const saved = has(product.id)
+  const noPhotos = !!variant && !variant.images.length && !product.images.length && images.length > 0
+  const option = variant?.option ?? 'Size'
+  const price = size || !sizes.length ? formatMoney(priceOf(product, color, size)) : priceLabel({
+    price: Math.min(...sizes.map((s) => priceOf(product, color, s))),
+    prices: Object.fromEntries(sizes.map((s) => [s, priceOf(product, color, s)])),
+  })
 
   // sticky add-to-basket bar on phones once the main button scrolls away
   useEffect(() => {
@@ -166,13 +184,16 @@ function ProductView({ product }: { product: P }) {
     <div className="container-x pt-6 pb-4">
       <Breadcrumbs items={[[categoryLabel(product.category), `/shop?category=${product.category}`], [product.title]]} />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14">
-        <Gallery key={color} images={images} alt={`${product.title}${color ? ` in ${color}` : ''}`} />
+        <div>
+          <Gallery key={color} images={images} alt={`${product.title}${color ? ` in ${noPhotos ? product.variants[0].color : color}` : ''}`} />
+          {noPhotos && <p className="mt-3 text-center text-[13px] text-muted">Photo shows {product.variants[0].color}. Yours will be made in <strong className="text-olive">{color}</strong>.</p>}
+        </div>
 
         <div className="min-w-0">
           <Link to={`/shop?category=${product.category}`} className="label-caps hover:text-orange-2">{categoryLabel(product.category)}</Link>
           <h1 className="mt-2 text-[1.9rem] leading-tight sm:text-[2.3rem]">{product.title}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <p className="text-2xl font-semibold text-olive">{formatMoney(product.price)}</p>
+            <p className="text-2xl font-semibold text-olive">{price}</p>
             {product.rating_count > 0 && product.rating_avg != null && (
               <a href="#reviews" className="flex items-center gap-1.5 text-sm text-muted hover:text-olive"><Stars value={product.rating_avg} /> {product.rating_count} review{product.rating_count === 1 ? '' : 's'}</a>
             )}
@@ -196,8 +217,8 @@ function ProductView({ product }: { product: P }) {
           {sizes.length > 0 && (
             <fieldset className="mt-6">
               <div className="mb-3 flex items-center justify-between">
-                <legend className="text-sm text-ink">Size: <span className="font-semibold text-olive">{size ?? 'Choose a size'}</span></legend>
-                <button type="button" onClick={() => setGuide(true)} className="flex items-center gap-1.5 text-[13px] font-medium text-olive underline underline-offset-2 hover:text-orange-2"><Ruler className="size-4" aria-hidden /> Size guide</button>
+                <legend className="text-sm text-ink">{option === 'Size' ? 'Size' : 'Option'}: <span className="font-semibold text-olive">{size ?? (option === 'Size' ? 'Choose a size' : option)}</span></legend>
+                {option === 'Size' && <button type="button" onClick={() => setGuide(true)} className="flex items-center gap-1.5 text-[13px] font-medium text-olive underline underline-offset-2 hover:text-orange-2"><Ruler className="size-4" aria-hidden /> Size guide</button>}
               </div>
               <div className="flex flex-wrap gap-2">
                 {sizes.map((s) => (
@@ -205,7 +226,7 @@ function ProductView({ product }: { product: P }) {
                     className={`min-h-11 min-w-14 rounded-md border px-3 text-sm font-medium transition ${s === size ? 'border-olive bg-olive text-white' : needSize ? 'border-red-300 bg-paper' : 'border-sand bg-paper hover:border-olive'}`}>{s}</button>
                 ))}
               </div>
-              {needSize && <p role="alert" className="mt-2 text-sm font-medium text-red-700">Please choose a size first.</p>}
+              {needSize && <p role="alert" className="mt-2 text-sm font-medium text-red-700">Please choose {option === 'Size' ? 'a size' : 'an option'} first.</p>}
             </fieldset>
           )}
 
@@ -239,12 +260,12 @@ function ProductView({ product }: { product: P }) {
 
       <Reviews productId={product.id} />
 
-      <Modal open={guide} onClose={() => setGuide(false)} title="Size guide"><SizeGuide sizes={sizes} /></Modal>
+      <Modal open={guide} onClose={() => setGuide(false)} title="Size guide"><SizeGuide sizes={sizes} tables={product.size_guide} /></Modal>
 
       <div aria-hidden={!showBar} className={`fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.2)] backdrop-blur transition-transform duration-300 lg:hidden ${showBar ? 'translate-y-0' : 'translate-y-full'}`}>
         <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{product.title}</p><p className="text-sm font-semibold text-olive">{formatMoney(product.price)}{size && <span className="font-normal text-muted"> · {size}</span>}</p></div>
-          <button type="button" tabIndex={showBar ? 0 : -1} onClick={addToCart} className="btn-primary">{sizes.length && !size ? 'Choose size' : 'Add to basket'}</button>
+          <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{product.title}</p><p className="text-sm font-semibold text-olive">{price}{size && <span className="font-normal text-muted"> · {size}</span>}</p></div>
+          <button type="button" tabIndex={showBar ? 0 : -1} onClick={addToCart} className="btn-primary">{sizes.length && !size ? (option === 'Size' ? 'Choose size' : 'Choose option') : 'Add to basket'}</button>
         </div>
       </div>
     </div>

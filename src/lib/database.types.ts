@@ -21,7 +21,7 @@ export type Database = {
       }, 'body' | 'order_id'>
       orders: Table<{
         created_at: string; currency: string; email: string | null; fulfillment_error: string | null
-        fulfillment_status: string | null; id: string; inkthreadable_order_id: string | null; items: Json
+        fulfillment_status: string | null; id: string; gelato_order_id: string | null; items: Json
         is_test: boolean; shipping_address: Json | null; shipping_amount: number; shipping_method: string; status: string
         stripe_payment_intent_id: string | null; stripe_session_id: string | null; subtotal: number
         total_amount: number; tracking_number: string | null; updated_at: string; user_id: string | null
@@ -29,7 +29,7 @@ export type Database = {
       products: Table<{
         base_price: number | null; category: string; created_at: string; description: string
         external_product_id: string | null; id: string; images: string[]; is_active: boolean
-        is_featured: boolean; is_sample: boolean; manual_price: number | null; print_files: Json; source: string; title: string
+        is_featured: boolean; is_sample: boolean; manual_price: number | null; print_files: Json; size_guide: Json; skus: Json; source: string; title: string
         updated_at: string; variants: Json
       }, 'category' | 'source' | 'title'>
       profiles: Table<{
@@ -41,7 +41,7 @@ export type Database = {
       }, 'product_id' | 'rating'>
       store_settings: Table<{
         checkout_mode: string; express_shipping: number; free_shipping_over: number; global_margin_percent: number; id: number
-        last_api_sync: string | null; shipping_flat: number; updated_at: string
+        last_api_sync: string | null; last_product_sync: string | null; shipping_flat: number; updated_at: string
       }, never>
     }
     Views: { [_ in never]: never }
@@ -61,7 +61,7 @@ export type Database = {
         Args: never
         Returns: {
           category: string; created_at: string; description: string; id: string; images: string[]
-          is_featured: boolean; price: number; rating_avg: number | null; rating_count: number; title: string
+          is_featured: boolean; price: number; prices: Json; rating_avg: number | null; rating_count: number; size_guide: Json; title: string
           variants: Json
         }[]
       }

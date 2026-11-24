@@ -183,7 +183,7 @@ export function Privacy() {
       <ul>
         <li><strong>Supabase</strong>: database, authentication and hosting of our backend.</li>
         <li><strong>Stripe</strong>: payment processing.</li>
-        <li><strong>Inkthreadable</strong>: our print partner, who receives your shipping details to make and send your order.</li>
+        <li><strong>Gelato</strong>: our print partner, who receives your shipping details to make and send your order.</li>
         <li><strong>Couriers</strong>: to deliver your parcel.</li>
         <li><strong>Google</strong>: only if you choose "Continue with Google".</li>
       </ul>

@@ -52,14 +52,23 @@ export function safeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
-export async function internalSecret(name: 'cron_secret' | 'inkthreadable_webhook_token'): Promise<string | null> {
+export async function internalSecret(name: 'cron_secret' | 'gelato_api_key' | 'gelato_webhook_token' | 'stripe_webhook_live' | 'stripe_webhook_test'): Promise<string | null> {
   const { data, error } = await admin.rpc('internal_secret', { p_name: name })
   if (error) console.error('internal_secret', error.message)
   return (data as string | null) ?? null
 }
 
+/** Callers of the sync functions: pg_cron (shared secret) or a signed-in admin. */
+export async function isCronOrAdmin(req: Request): Promise<boolean> {
+  const bearer = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? ''
+  const cron = await internalSecret('cron_secret')
+  return (!!cron && safeEqual(bearer, cron)) || isAdminUser(await getUser(req))
+}
+
 export const round2 = (n: number) => Math.round(n * 100) / 100
 
-/** Same formula as public.product_price() in SQL. */
-export const productPrice = (p: { source: string; base_price: number | null; manual_price: number | null }, margin: number) =>
-  p.source === 'manual' ? round2(Number(p.manual_price)) : round2(Number(p.base_price) * (1 + margin / 100))
+type Priced = { source: string; manual_price: number | null; skus: { color: string | null; size: string | null; cost: number }[] }
+/** Same rule as public.sku_price() in SQL (whole cents, so half-cents round the same). 0 = this colour/size is not for sale. */
+export const skuPrice = (p: Priced, color: string | null, size: string | null, margin: number) =>
+  p.source === 'manual' ? round2(Number(p.manual_price))
+    : Math.round(Math.round((p.skus.find((s) => s.color === color && s.size === size)?.cost ?? 0) * 100) * (100 + margin) / 100) / 100

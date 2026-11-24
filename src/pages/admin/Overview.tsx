@@ -48,7 +48,7 @@ export default function Overview() {
     { label: 'In production', value: String(counts.toFulfil), to: '/admin/orders?status=active' },
   ]
   const todo = [
-    counts.problems > 0 && { to: '/admin/orders?status=problem', text: `${counts.problems} order${counts.problems > 1 ? 's' : ''} failed to reach Inkthreadable`, urgent: true },
+    counts.problems > 0 && { to: '/admin/orders?status=problem', text: `${counts.problems} order${counts.problems > 1 ? 's' : ''} need attention in Gelato`, urgent: true },
     counts.reviews > 0 && { to: '/admin/reviews', text: `${counts.reviews} review${counts.reviews > 1 ? 's' : ''} waiting for approval` },
     counts.messages > 0 && { to: '/admin/messages', text: `${counts.messages} unread message${counts.messages > 1 ? 's' : ''}` },
   ].filter(Boolean) as { to: string; text: string; urgent?: boolean }[]

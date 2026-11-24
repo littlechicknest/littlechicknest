@@ -2,7 +2,7 @@ import { Lock, ShoppingBag, Trash2, Truck, X } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useCart } from '../context/cart'
-import { formatMoney, imgSrc, productImage } from '../lib/shop'
+import { formatMoney, imgSrc, priceOf, productImage, sizeText } from '../lib/shop'
 import { useProducts, useShopConfig } from '../lib/useProducts'
 import { QtyStepper, useOverlay } from './ui'
 
@@ -76,10 +76,10 @@ export function CartDrawer() {
                           <Link to={`/product/${r.product_id}`} onClick={close} className="line-clamp-2 text-sm font-medium hover:text-orange-2">{r.product.title}</Link>
                           <button type="button" onClick={() => remove(r.key)} className="-mt-1 -mr-1 rounded p-1 text-muted hover:text-red-700" aria-label={`Remove ${r.product.title}`}><Trash2 className="size-4" aria-hidden /></button>
                         </div>
-                        <p className="text-xs text-muted">{[r.color, r.size && `Size ${r.size}`].filter(Boolean).join(' · ')}</p>
+                        <p className="text-xs text-muted">{[r.color, r.size && sizeText(r.size)].filter(Boolean).join(' · ')}</p>
                         <div className="mt-auto flex items-center justify-between pt-2">
                           <QtyStepper size="sm" value={r.quantity} onChange={(n) => setQuantity(r.key, n)} />
-                          <span className="text-sm font-semibold text-olive">{formatMoney(r.product.price * r.quantity)}</span>
+                          <span className="text-sm font-semibold text-olive">{formatMoney(r.price * r.quantity)}</span>
                         </div>
                       </div>
                     </li>
@@ -95,7 +95,7 @@ export function CartDrawer() {
                       return (
                         <li key={p.id} className="flex items-center gap-3">
                           <span className="size-12 shrink-0 overflow-hidden rounded-md bg-paper">{img && <img src={img} alt="" className="size-full object-cover" loading="lazy" />}</span>
-                          <span className="min-w-0 flex-1 text-sm"><span className="block truncate font-medium">{p.title}</span><span className="text-muted">{formatMoney(p.price)}</span></span>
+                          <span className="min-w-0 flex-1 text-sm"><span className="block truncate font-medium">{p.title}</span><span className="text-muted">{formatMoney(priceOf(p, p.variants[0]?.color))}</span></span>
                           <button type="button" onClick={() => add({ product_id: p.id, color: p.variants[0]?.color ?? null, size: null, quantity: 1 })}
                             className="rounded-full border border-olive/30 px-3 py-1 text-xs font-semibold text-olive uppercase hover:bg-olive hover:text-white">Add</button>
                         </li>

@@ -15,6 +15,8 @@ import { useShopConfig } from '../lib/useProducts'
 
 type Method = 'standard' | 'express'
 const REQUIRED: (keyof Address)[] = ['name', 'line1', 'city', 'postal_code', 'country']
+// carriers need the state code in these countries (same rule as create-checkout-session)
+const STATE_CODE = ['US', 'CA', 'AU']
 const STEPS = ['Basket', 'Details', 'Payment', 'Done']
 
 function Steps({ at }: { at: number }) {
@@ -66,6 +68,7 @@ export default function Checkout() {
     const e: Partial<Record<keyof Address, string>> = {}
     for (const k of REQUIRED) if (!addr[k].trim()) e[k] = 'Required'
     if (addr.postal_code && !/^[A-Za-z0-9][A-Za-z0-9 -]{1,10}$/.test(addr.postal_code.trim())) e.postal_code = 'Check your postcode'
+    if (STATE_CODE.includes(addr.country) && !/^[A-Za-z]{2,3}$/.test(addr.state.trim())) e.state = 'Use the short code, e.g. CA or NSW'
     if (addr.phone && !/^[+()\d\s-]{6,20}$/.test(addr.phone.trim())) e.phone = 'Check your phone number'
     return e
   }, [addr])
@@ -132,7 +135,7 @@ export default function Checkout() {
                   <span className="absolute -top-2 -right-2 grid size-5 place-items-center rounded-full bg-olive text-[10px] font-semibold text-white">{r.quantity}</span>
                 </span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{r.product.title}</span><span className="text-xs text-muted">{[r.color, r.size].filter(Boolean).join(' · ')}</span></span>
-                <span className="text-sm font-semibold">{formatMoney(r.product.price * r.quantity)}</span>
+                <span className="text-sm font-semibold">{formatMoney(r.price * r.quantity)}</span>
               </li>
             )
           })}
@@ -195,7 +198,7 @@ export default function Checkout() {
                   <div className="sm:col-span-2"><Field label="Address" error={err('line1')}><input name="line1" className="input" autoComplete="address-line1" maxLength={120} placeholder="Street and house number" value={addr.line1} onChange={set('line1')} onBlur={blur('line1')} aria-invalid={!!err('line1')} /></Field></div>
                   <div className="sm:col-span-2"><Field label="Apartment, suite, etc." optional><input name="line2" className="input" autoComplete="address-line2" maxLength={120} value={addr.line2} onChange={set('line2')} /></Field></div>
                   <Field label="City" error={err('city')}><input name="city" className="input" autoComplete="address-level2" maxLength={80} value={addr.city} onChange={set('city')} onBlur={blur('city')} aria-invalid={!!err('city')} /></Field>
-                  <Field label={addr.country === 'US' ? 'State' : 'County / region'} optional><input name="state" className="input" autoComplete="address-level1" maxLength={80} value={addr.state} onChange={set('state')} /></Field>
+                  <Field label={STATE_CODE.includes(addr.country) ? 'State' : 'County / region'} optional={!STATE_CODE.includes(addr.country)} error={err('state')}><input name="state" className="input" autoComplete="address-level1" maxLength={80} value={addr.state} onChange={set('state')} onBlur={blur('state')} aria-invalid={!!err('state')} /></Field>
                   <Field label={addr.country === 'US' ? 'ZIP code' : 'Postcode'} error={err('postal_code')}><input name="postal_code" className="input" autoComplete="postal-code" maxLength={12} value={addr.postal_code} onChange={set('postal_code')} onBlur={blur('postal_code')} aria-invalid={!!err('postal_code')} /></Field>
                 </div>
                 <label className="mt-4 flex items-center gap-2.5 text-sm"><input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} className="size-4 accent-orange" /> Save as my default address</label>

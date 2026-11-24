@@ -1,38 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import Papa from 'papaparse'
-import { CSV_TEMPLATE, parseProductRows } from './csv'
-import { addBusinessDays, asVariants, categoryLabel, DEFAULT_CONFIG, imgSrc, marginPrice, safeUrl, shippingCost } from './shop'
+import { addBusinessDays, asVariants, categoryLabel, DEFAULT_CONFIG, imgSrc, inCategory, marginPrice, priceLabel, priceOf, productImages, safeUrl, shippingCost, sizeText } from './shop'
 
 describe('marginPrice', () => {
   it('matches the client examples', () => {
     expect(marginPrice(15, 100)).toBe(30)
     expect(marginPrice(15, 50)).toBe(22.5)
     expect(marginPrice(9.99, 1)).toBe(10.09)
-  })
-})
-
-describe('parseProductRows', () => {
-  it('groups template rows into one product with two colours', () => {
-    const rows = Papa.parse<Record<string, string>>(CSV_TEMPLATE, { header: true, skipEmptyLines: true }).data
-    const { products, errors } = parseProductRows(rows)
-    expect(errors).toEqual([])
-    expect(products).toHaveLength(1)
-    expect(products[0].variants.map((v) => v.color)).toEqual(['Olive', 'Cream'])
-    expect(products[0].variants[0].sizes).toEqual(['S', 'M', 'L', 'XL'])
-    expect(products[0].print_files).toEqual({ front: 'https://example.com/print-front.png' })
-  })
-
-  it('reports bad rows without dropping good ones', () => {
-    const { products, errors } = parseProductRows([
-      { code: 'A', title: 'Ok', category: 'kids', base_price: '10' },
-      { code: 'B', title: 'Bad cat', category: 'Pets', base_price: '10' },
-      { code: 'C', title: 'Bad price', category: 'Men', base_price: '-1' },
-      { code: 'A', color: 'Red', images: 'javascript:alert(1)' },
-      { title: 'no code' },
-    ])
-    expect(products.map((p) => p.external_product_id)).toEqual(['A'])
-    expect(products[0].category).toBe('Kids')
-    expect(errors.map((e) => e.row)).toEqual([3, 4, 5, 6])
+    expect(marginPrice(20.35, 50)).toBe(30.53) // half-cent, must round like Postgres
   })
 })
 
@@ -43,12 +17,30 @@ describe('guards', () => {
   })
   it('drops malformed variants', () => {
     expect(asVariants([{ color: 'Red', sizes: ['M', 3] }, { nope: 1 }, 'x'])).toEqual([
-      { color: 'Red', hex: undefined, pn: undefined, sizes: ['M'], images: [] },
+      { color: 'Red', hex: undefined, option: undefined, sizes: ['M'], images: [] },
     ])
   })
 })
 
 describe('storefront helpers', () => {
+  it('prices each colour and size', () => {
+    const p = { price: 10, prices: { 'Navy|S': 10, 'Navy|XL': 14 } }
+    expect(priceOf(p, 'Navy', 'XL')).toBe(14)
+    expect(priceOf({ price: 8, prices: {} }, null, null)).toBe(8)
+    expect(priceLabel(p)).toBe('From $10.00')
+    expect(priceLabel({ price: 8, prices: { '|': 8 } })).toBe('$8.00')
+  })
+  it('shows only the chosen colour, or the first colour when it has no photos', () => {
+    const p = { images: [], variants: [{ color: 'White', sizes: [], images: ['a.webp'] }, { color: 'Navy', sizes: [], images: ['b.webp', 'c.webp'] }, { color: 'Red', sizes: [], images: [] }] }
+    expect(productImages(p, 'Navy')).toHaveLength(2)
+    expect(productImages(p, 'Red')).toEqual(productImages(p, 'White'))
+  })
+  it('lists unisex products under men and women only', () => {
+    expect(['Men', 'Women', 'Kids'].map((c) => inCategory({ category: 'Unisex' }, c))).toEqual([true, true, false])
+  })
+  it('labels sizes and design options', () => {
+    expect([sizeText('2XL'), sizeText('Design Option 1')]).toEqual(['Size 2XL', 'Design Option 1'])
+  })
   it('labels categories', () => {
     expect(categoryLabel('Men')).toBe("Men's")
     expect(categoryLabel('Kids')).toBe("Kids'")

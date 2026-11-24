@@ -1,6 +1,6 @@
 import { Check, FlaskConical } from 'lucide-react'
 import { Link } from 'react-router'
-import { asAddress, countryName, formatMoney, imgSrc, ORDER_STEPS, STATUS_LABEL, type OrderItem } from '../lib/shop'
+import { asAddress, countryName, formatMoney, imgSrc, ORDER_STEPS, sizeText, STATUS_LABEL, type OrderItem } from '../lib/shop'
 import type { Json } from '../lib/database.types'
 
 export function StatusBadge({ status }: { status: string }) {
@@ -51,7 +51,7 @@ export function ItemRow({ it, children }: { it: OrderItem; children?: React.Reac
       </Link>
       <div className="min-w-0 flex-1">
         <Link to={`/product/${it.product_id}`} className="font-medium hover:text-orange-2">{it.title}</Link>
-        <p className="text-xs text-muted">{[it.color, it.size && `Size ${it.size}`, `Qty ${it.quantity}`].filter(Boolean).join(' · ')}</p>
+        <p className="text-xs text-muted">{[it.color, it.size && sizeText(it.size), `Qty ${it.quantity}`].filter(Boolean).join(' · ')}</p>
         {children}
       </div>
       <p className="text-sm font-semibold text-olive">{formatMoney(it.unit_price * it.quantity)}</p>

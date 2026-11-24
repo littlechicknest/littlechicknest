@@ -3,14 +3,14 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard'
 import { Alert, Empty, Modal, PageHeader, useTitle } from '../components/ui'
-import { CATEGORIES, CATEGORY_INFO, categoryLabel, type Product } from '../lib/shop'
+import { CATEGORIES, CATEGORY_INFO, categoryLabel, inCategory as isIn, type Product } from '../lib/shop'
 import { useProducts } from '../lib/useProducts'
 
 const SORTS = { featured: 'Featured', new: 'Newest', 'price-asc': 'Price: low to high', 'price-desc': 'Price: high to low', az: 'Name: A to Z' } as const
 type Sort = keyof typeof SORTS
 const PRICES = { under30: ['Under $30', 0, 30], '30to50': ['$30 – $50', 30, 50], over50: ['Over $50', 50, Infinity] } as const
 type PriceKey = keyof typeof PRICES
-const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3-4Y', '3-5Y', '5-6Y', '6-8Y', '7-8Y', '9-10Y', '9-12Y', '11-12Y']
+const SIZE_ORDER = ['NEWBORN', '6M', '12M', '18M', '24M', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '3-4Y', '3-5Y', '5-6Y', '6-8Y', '7-8Y', '9-10Y', '9-12Y', '11-12Y']
 
 const list = (v: string | null) => (v ? v.split(',').filter(Boolean) : [])
 
@@ -37,7 +37,7 @@ export default function Shop() {
     set(key, (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]).join(',') || null)
   const clearAll = () => setParams((p) => { ['color', 'size', 'price', 'q'].forEach((k) => p.delete(k)); return p }, { replace: true })
 
-  const inCategory = useMemo(() => (products ?? []).filter((p) => !category || p.category === category), [products, category])
+  const inCategory = useMemo(() => (products ?? []).filter((p) => !category || isIn(p, category)), [products, category])
 
   // facets come from what's actually in this category
   const facets = useMemo(() => {
@@ -65,7 +65,7 @@ export default function Shop() {
 
   const counts = useMemo(() => {
     const m: Record<string, number> = {}
-    for (const p of products ?? []) m[p.category] = (m[p.category] ?? 0) + 1
+    for (const c of CATEGORIES) m[c] = (products ?? []).filter((p) => isIn(p, c)).length
     return m
   }, [products])
 

@@ -1,100 +1,12 @@
-import Papa from 'papaparse'
-import { Check, Copy, Download, EyeOff, Mail, RefreshCw, Trash2, Upload } from 'lucide-react'
+import { Check, Copy, EyeOff, Mail, RefreshCw, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { Alert, Field, Spinner, Stars, useTitle } from '../../components/ui'
-import { CSV_TEMPLATE, parseProductRows, type ImportError, type ImportProduct } from '../../lib/csv'
-import type { Json, Tables } from '../../lib/database.types'
+import type { Tables } from '../../lib/database.types'
 import { formatDate, formatMoney, marginPrice } from '../../lib/shop'
 import { functionError, supabase } from '../../lib/supabase'
 import { invalidateProducts } from '../../lib/useProducts'
 import { AdminTitle } from './AdminLayout'
-
-/* ------------------------------------------------------------ CSV import */
-
-export function CsvImport() {
-  useTitle('CSV import')
-  const [parsed, setParsed] = useState<{ products: ImportProduct[]; errors: ImportError[] } | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState<{ tone: 'error' | 'success'; text: string } | null>(null)
-
-  const onFile = (file: File | undefined) => {
-    setMsg(null)
-    setParsed(null)
-    if (!file) return
-    if (file.size > 2 * 1024 * 1024) return setMsg({ tone: 'error', text: 'CSV must be under 2 MB.' })
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: 'greedy',
-      complete: (res) => setParsed(parseProductRows(res.data)),
-      error: (err) => setMsg({ tone: 'error', text: err.message }),
-    })
-  }
-
-  const download = () => {
-    const url = URL.createObjectURL(new Blob([CSV_TEMPLATE], { type: 'text/csv' }))
-    const a = Object.assign(document.createElement('a'), { href: url, download: 'inkthreadable-products-template.csv' })
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const run = async () => {
-    if (!parsed?.products.length) return
-    setBusy(true)
-    // existing codes are updated in place (visibility/featured flags are left untouched)
-    const { error } = await supabase.from('products').upsert(
-      parsed.products.map((p) => ({ ...p, variants: p.variants as unknown as Json })),
-      { onConflict: 'external_product_id' },
-    )
-    setBusy(false)
-    if (error) return setMsg({ tone: 'error', text: error.message })
-    invalidateProducts()
-    setMsg({ tone: 'success', text: `Imported ${parsed.products.length} product${parsed.products.length > 1 ? 's' : ''}.` })
-    setParsed(null)
-  }
-
-  return (
-    <>
-      <AdminTitle title="CSV import">
-        <button type="button" onClick={download} className="btn-ghost py-2"><Download className="size-4" aria-hidden /> Template</button>
-      </AdminTitle>
-      <div className="card mb-6 space-y-3 p-5 text-sm text-ink/85">
-        <p>Inkthreadable's API has no product catalogue, so add their products here in bulk. Use <strong>one row per colour</strong>. Rows with the same <code>code</code> become one product, and the first row sets the title, description, category and base price.</p>
-        <p>Separate multiple <code>sizes</code> and <code>images</code> with <code>|</code>. Category must be Men, Women, Kids or Accessories. Re-importing a code updates that product.</p>
-        <label className="btn-dark cursor-pointer py-2">
-          <Upload className="size-4" aria-hidden /> Choose CSV file
-          <input type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = '' }} />
-        </label>
-      </div>
-      {msg && <div className="mb-4"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
-      {parsed && (
-        <div className="space-y-4">
-          {parsed.errors.length > 0 && (
-            <Alert>
-              <p className="font-bold">{parsed.errors.length} row{parsed.errors.length > 1 ? 's' : ''} skipped:</p>
-              <ul className="mt-1 list-disc pl-5">{parsed.errors.slice(0, 50).map((e, i) => <li key={i}>Row {e.row}: {e.message}</li>)}</ul>
-            </Alert>
-          )}
-          {parsed.products.length > 0 && (
-            <div className="card overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-sm">
-                <thead className="border-b border-sand text-xs uppercase tracking-wide text-muted"><tr><th className="p-3">Code</th><th className="p-3">Title</th><th className="p-3">Category</th><th className="p-3 text-right">Base cost</th><th className="p-3">Colours</th></tr></thead>
-                <tbody className="divide-y divide-sand">
-                  {parsed.products.map((p) => (
-                    <tr key={p.external_product_id}><td className="p-3 font-mono">{p.external_product_id}</td><td className="p-3">{p.title}</td><td className="p-3">{p.category}</td><td className="p-3 text-right">{formatMoney(p.base_price)}</td><td className="p-3">{p.variants.map((v) => v.color).join(', ') || '—'}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <button type="button" onClick={run} disabled={busy || parsed.products.length === 0} className="btn-primary">
-            {busy ? 'Importing…' : `Import ${parsed.products.length} product${parsed.products.length === 1 ? '' : 's'}`}
-          </button>
-        </div>
-      )}
-    </>
-  )
-}
 
 /* ------------------------------------------------------------ reviews */
 
@@ -267,7 +179,7 @@ export function AdminSettings() {
   const [mode, setMode] = useState<'test' | 'live'>('test')
   const [example, setExample] = useState('15')
   const [msg, setMsg] = useState<{ tone: 'error' | 'success'; text: string } | null>(null)
-  const [syncing, setSyncing] = useState(false)
+  const [syncing, setSyncing] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
@@ -297,11 +209,12 @@ export function AdminSettings() {
     setMsg({ tone: 'success', text: 'Saved. Shop prices updated instantly.' })
   }
 
-  const syncAll = async () => {
-    setSyncing(true)
+  const sync = async (fn: 'sync-products' | 'sync-order-status') => {
+    setSyncing(fn)
     setMsg(null)
-    const { data, error } = await supabase.functions.invoke<{ message: string }>('sync-order-status', { body: {} })
-    setSyncing(false)
+    const { data, error } = await supabase.functions.invoke<{ message: string }>(fn, { body: {} })
+    setSyncing(null)
+    invalidateProducts()
     setMsg(error ? { tone: 'error', text: await functionError(error) } : { tone: 'success', text: data?.message ?? 'Sync complete.' })
   }
 
@@ -317,7 +230,7 @@ export function AdminSettings() {
         <section className="card space-y-5 p-6">
           <div>
             <h2 className="text-xl">Profit margin</h2>
-            <p className="text-sm text-muted">Added on top of the Inkthreadable cost for every Inkthreadable product. Manual products keep their fixed price.</p>
+            <p className="text-sm text-muted">Added on top of the Gelato cost for every Gelato product. Manual products keep their fixed price.</p>
           </div>
           <div>
             <div className="mb-2 flex items-baseline justify-between">
@@ -350,7 +263,7 @@ export function AdminSettings() {
           <fieldset className="rounded-lg border border-line p-4">
             <legend className="px-1 text-sm font-bold text-olive">Checkout mode</legend>
             <div className="grid gap-2 sm:grid-cols-2">
-              {([['test', 'Test (preview)', 'Orders are saved as test orders. No payment, nothing sent to print.'], ['live', 'Live (Stripe)', 'Customers pay by card on Stripe. Needs the Stripe keys in Supabase secrets.']] as const).map(([v, label, text]) => (
+              {([['test', 'Test (preview)', 'Orders are saved as test orders. No payment, nothing sent to print.'], ['live', 'Live (Stripe)', 'Customers pay by card on Stripe. Switches on by itself once STRIPE_SECRET_KEY is in Supabase secrets.']] as const).map(([v, label, text]) => (
                 <label key={v} className={`flex cursor-pointer gap-2.5 rounded-lg border-2 p-3 text-sm ${mode === v ? 'border-orange bg-orange-soft/40' : 'border-line'}`}>
                   <input type="radio" name="mode" checked={mode === v} onChange={() => setMode(v)} className="mt-0.5 accent-orange" />
                   <span><strong className="block text-olive">{label}</strong><span className="text-xs text-muted">{text}</span></span>
@@ -362,15 +275,18 @@ export function AdminSettings() {
         </section>
 
         <section className="card space-y-4 p-6">
-          <h2 className="text-xl">Inkthreadable order sync</h2>
-          <p className="text-sm text-muted">Order statuses and tracking numbers are pulled from Inkthreadable automatically every hour. You can also sync now. This also re-sends any paid orders that failed to reach Inkthreadable.</p>
-          <p className="text-sm">Last sync: <strong>{s.last_api_sync ? new Date(s.last_api_sync).toLocaleString() : 'never'}</strong></p>
-          <button type="button" onClick={syncAll} disabled={syncing} className="btn-dark"><RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} aria-hidden /> {syncing ? 'Syncing…' : 'Sync orders now'}</button>
+          <h2 className="text-xl">Gelato sync</h2>
+          <p className="text-sm text-muted">Products, photos, colours, sizes and costs are copied from your Gelato store automatically every 15 minutes.</p>
+          <p className="text-sm">Last product sync: <strong>{s.last_product_sync ? new Date(s.last_product_sync).toLocaleString() : 'never'}</strong></p>
+          <button type="button" onClick={() => sync('sync-products')} disabled={!!syncing} className="btn-dark"><RefreshCw className={`size-4 ${syncing === 'sync-products' ? 'animate-spin' : ''}`} aria-hidden /> {syncing === 'sync-products' ? 'Syncing…' : 'Sync products now'}</button>
+          <p className="text-sm text-muted">Order statuses and tracking numbers are pulled from Gelato automatically every 15 minutes. You can also sync now. This also re-sends any paid orders that failed to reach Gelato.</p>
+          <p className="text-sm">Last order sync: <strong>{s.last_api_sync ? new Date(s.last_api_sync).toLocaleString() : 'never'}</strong></p>
+          <button type="button" onClick={() => sync('sync-order-status')} disabled={!!syncing} className="btn-dark"><RefreshCw className={`size-4 ${syncing === 'sync-order-status' ? 'animate-spin' : ''}`} aria-hidden /> {syncing === 'sync-order-status' ? 'Syncing…' : 'Sync orders now'}</button>
           <div className="rounded-lg bg-cream-2/70 p-4 text-sm">
             <p className="font-bold text-olive">Real-time webhook (optional)</p>
-            <p className="mt-1 text-muted">In Inkthreadable → API settings → Webhooks, add a JSON webhook pointing to:</p>
-            <code className="mt-2 block break-all rounded bg-white p-2 text-xs select-all">{import.meta.env.VITE_SUPABASE_URL}/functions/v1/inkthreadable-webhook?token={token ?? '…'}</code>
-            <p className="mt-1 text-xs text-muted">Keep this URL private: the token proves calls come from Inkthreadable.</p>
+            <p className="mt-1 text-muted">In Gelato → Developer → Webhooks, add a webhook for order status updates pointing to:</p>
+            <code className="mt-2 block break-all rounded bg-white p-2 text-xs select-all">{import.meta.env.VITE_SUPABASE_URL}/functions/v1/gelato-webhook?token={token ?? '…'}</code>
+            <p className="mt-1 text-xs text-muted">Keep this URL private: the token proves calls come from Gelato.</p>
           </div>
         </section>
       </div>

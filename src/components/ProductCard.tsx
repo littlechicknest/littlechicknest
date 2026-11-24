@@ -2,7 +2,7 @@ import { Heart, ShoppingBag } from 'lucide-react'
 import { Link } from 'react-router'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
-import { formatMoney, productImages, type Product } from '../lib/shop'
+import { priceLabel, productImages, type Product } from '../lib/shop'
 import { Img, Stars } from './ui'
 
 const NEW_DAYS = 21
@@ -72,7 +72,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           <p className="mt-1 flex items-center gap-1 text-xs text-muted"><Stars value={product.rating_avg} size="size-3" /> ({product.rating_count})</p>
         )}
         <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className="text-[15px] font-semibold text-olive">{formatMoney(product.price)}</span>
+          <span className="text-[15px] font-semibold text-olive">{priceLabel(product)}</span>
           {v.length > 1 && (
             <span className="flex items-center gap-1" title={v.map((x) => x.color).join(', ')}>
               {v.slice(0, 4).map((x) => (

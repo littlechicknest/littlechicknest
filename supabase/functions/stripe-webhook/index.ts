@@ -1,11 +1,9 @@
-// Stripe -> marks orders paid (then sends them to Inkthreadable), handles expiry and refunds.
+// Stripe -> marks orders paid (then sends them to Gelato), handles expiry and refunds.
 import Stripe from 'npm:stripe@17.7.0'
-import { submitOrder } from '../_shared/inkthreadable.ts'
+import { submitOrder } from '../_shared/gelato.ts'
+import { stripe, STRIPE_KEY, webhookSecret } from '../_shared/stripe.ts'
 import { admin } from '../_shared/util.ts'
 
-const STRIPE_KEY = Deno.env.get('STRIPE_SECRET_KEY') ?? ''
-const WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
-const stripe = new Stripe(STRIPE_KEY || 'sk_unset', { httpClient: Stripe.createFetchHttpClient() })
 const cryptoProvider = Stripe.createSubtleCryptoProvider()
 
 const reply = (status: number, body: string) => new Response(body, { status })
@@ -38,19 +36,20 @@ async function markPaid(session: Stripe.Checkout.Session) {
     console.log(orderId, await submitOrder(orderId))
   } catch (e) {
     // payment is safe; the error is stored on the order and the hourly sync retries it
-    console.error('inkthreadable submit failed', orderId, e instanceof Error ? e.message : e)
+    console.error('gelato submit failed', orderId, e instanceof Error ? e.message : e)
   }
 }
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return reply(405, 'Method not allowed')
-  if (!STRIPE_KEY || !WEBHOOK_SECRET) return reply(503, 'Stripe not configured')
+  const secret = STRIPE_KEY ? await webhookSecret() : null
+  if (!secret) return reply(503, 'Stripe not configured')
   const signature = req.headers.get('Stripe-Signature')
   if (!signature) return reply(400, 'Missing signature')
 
   let event: Stripe.Event
   try {
-    event = await stripe.webhooks.constructEventAsync(await req.text(), signature, WEBHOOK_SECRET, undefined, cryptoProvider)
+    event = await stripe.webhooks.constructEventAsync(await req.text(), signature, secret, undefined, cryptoProvider)
   } catch {
     return reply(400, 'Invalid signature')
   }

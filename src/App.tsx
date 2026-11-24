@@ -25,7 +25,6 @@ const AdminOrders = lazy(() => admin().then((m) => ({ default: m.AdminOrders }))
 const AdminOrderDetail = lazy(() => admin().then((m) => ({ default: m.AdminOrderDetail })))
 const AdminProducts = lazy(() => admin().then((m) => ({ default: m.AdminProducts })))
 const ProductForm = lazy(() => admin().then((m) => ({ default: m.ProductForm })))
-const CsvImport = lazy(() => admin().then((m) => ({ default: m.CsvImport })))
 const AdminReviews = lazy(() => admin().then((m) => ({ default: m.AdminReviews })))
 const AdminMessages = lazy(() => admin().then((m) => ({ default: m.AdminMessages })))
 const AdminCustomers = lazy(() => admin().then((m) => ({ default: m.AdminCustomers })))
@@ -79,7 +78,6 @@ const router = createHashRouter([{
         { path: 'orders/:id', element: <AdminOrderDetail /> },
         { path: 'products', element: <AdminProducts /> },
         { path: 'products/:id', element: <ProductForm /> },
-        { path: 'import', element: <CsvImport /> },
         { path: 'reviews', element: <AdminReviews /> },
         { path: 'messages', element: <AdminMessages /> },
         { path: 'customers', element: <AdminCustomers /> },

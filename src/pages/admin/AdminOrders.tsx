@@ -155,11 +155,11 @@ export function AdminOrderDetail() {
   return (
     <>
       <Link to="/admin/orders" className="mb-4 inline-flex items-center gap-1 text-sm font-bold text-olive hover:underline"><ChevronLeft className="size-4" aria-hidden /> Orders</Link>
-      {order.is_test && <div className="mb-4"><Alert tone="info">This is a <strong>test order</strong> placed while checkout was in test mode. No payment was taken and it is never sent to Inkthreadable. You can still change its status to preview what customers see.</Alert></div>}
+      {order.is_test && <div className="mb-4"><Alert tone="info">This is a <strong>test order</strong> placed while checkout was in test mode. No payment was taken and it is never sent to Gelato. You can still change its status to preview what customers see.</Alert></div>}
       <AdminTitle title={`Order #${order.id.slice(0, 8).toUpperCase()}`}>
         <button type="button" onClick={sync} disabled={syncing || order.status === 'pending'} className="btn-dark py-2">
           <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} aria-hidden />
-          {order.inkthreadable_order_id ? 'Sync from Inkthreadable' : 'Send to Inkthreadable'}
+          {order.gelato_order_id ? 'Sync from Gelato' : 'Send to Gelato'}
         </button>
       </AdminTitle>
       {msg && <div className="mb-4"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
@@ -238,7 +238,7 @@ export function AdminOrderDetail() {
           <section className="card space-y-2 p-5 text-sm">
             <h2 className="text-xl">References</h2>
             <p>Placed: {new Date(order.created_at).toLocaleString()}</p>
-            <p>Inkthreadable: <strong>{order.inkthreadable_order_id ?? '—'}</strong>{order.fulfillment_status && ` (${order.fulfillment_status})`}</p>
+            <p className="break-all">Gelato: <strong>{order.gelato_order_id ?? '—'}</strong>{order.fulfillment_status && ` (${order.fulfillment_status})`}</p>
             <p className="break-all">Stripe: {order.stripe_payment_intent_id ?? '—'}</p>
           </section>
         </div>

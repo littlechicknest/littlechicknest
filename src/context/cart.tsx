@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useProducts } from '../lib/useProducts'
-import type { Product } from '../lib/shop'
+import { priceOf, type Product } from '../lib/shop'
 
 /** Cart keeps only keys + quantity; prices always come from the live catalog. */
 export type CartLine = { product_id: string; color: string | null; size: string | null; quantity: number }
-export type CartRow = CartLine & { key: string; product: Product }
+export type CartRow = CartLine & { key: string; product: Product; price: number }
 
 const STORAGE_KEY = 'lcn-cart-v1'
 const MAX_QTY = 20
@@ -45,20 +45,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(lines)) } catch { /* storage blocked */ }
   }, [lines])
 
-  // lines whose product was removed or hidden silently drop out once the catalog has loaded
+  // lines whose product or option is no longer sold silently drop out once the catalog has loaded
   const rows = useMemo(() => {
     if (!products) return []
     const byId = new Map(products.map((p) => [p.id, p]))
     return lines.flatMap((l) => {
       const product = byId.get(l.product_id)
-      return product ? [{ ...l, key: lineKey(l), product }] : []
+      if (!product) return []
+      const v = product.variants.find((x) => x.color === l.color)
+      if (product.variants.length && (!v || (v.sizes.length > 0 && !v.sizes.includes(l.size ?? '')))) return []
+      return [{ ...l, key: lineKey(l), product, price: priceOf(product, l.color, l.size) }]
     })
   }, [lines, products])
 
   const value: CartState = {
     rows,
     count: rows.reduce((n, r) => n + r.quantity, 0),
-    subtotal: rows.reduce((n, r) => n + r.quantity * r.product.price, 0),
+    subtotal: rows.reduce((n, r) => n + r.quantity * r.price, 0),
     open,
     setOpen,
     add: (line) => {
