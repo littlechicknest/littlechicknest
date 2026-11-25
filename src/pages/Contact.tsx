@@ -3,9 +3,9 @@ import { useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { Alert, Breadcrumbs, Field, useTitle } from '../components/ui'
 import { useAuth } from '../context/auth'
+import { SiteImg } from '../lib/siteImages'
 import { supabase } from '../lib/supabase'
 
-const BASE = import.meta.env.BASE_URL
 const EMAIL = 'info.littlechicknest@gmail.com'
 const TOPICS = ['An order', 'Sizing & products', 'Returns or a problem', 'Something else']
 
@@ -35,7 +35,7 @@ export default function Contact() {
     <div className="container-x pt-6">
       <Breadcrumbs items={[['Contact us']]} />
       <section className="relative overflow-hidden rounded-[1.25rem] border border-line bg-[#fffaf0]">
-        <img src={`${BASE}banners/contact-man.webp`} alt="" className="h-48 w-full object-cover object-[50%_15%] md:absolute md:inset-y-0 md:right-0 md:h-full md:w-[55%] md:object-[20%_20%]" />
+        <SiteImg slot="contact-top" alt="" className="h-48 w-full object-cover object-[50%_15%] md:absolute md:inset-y-0 md:right-0 md:h-full md:w-[55%] md:object-[20%_20%]" />
         <div className="absolute inset-0 hidden bg-gradient-to-r from-[#fffaf0] from-45% to-[#fffaf0]/0 to-62% md:block" />
         <div className="relative max-w-md px-6 py-10 sm:px-12 md:py-16 lg:max-w-lg">
           <p className="text-sm font-bold tracking-widest text-olive uppercase">Get in touch</p>
@@ -86,7 +86,7 @@ export default function Contact() {
       </div>
 
       <section className="relative mx-auto mt-8 max-w-5xl overflow-hidden rounded-[1.25rem] border border-line">
-        <img src={`${BASE}products/set-premium.webp`} alt="" loading="lazy" className="absolute inset-y-0 right-0 h-full w-1/2 object-cover" />
+        <SiteImg slot="contact-bottom" alt="" loading="lazy" className="absolute inset-y-0 right-0 h-full w-1/2 object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#fffaf0] via-[#fffaf0] to-[#fffaf0]/0" />
         <div className="relative max-w-lg px-6 py-10 sm:px-10">
           <h2 className="text-3xl">Before you reach out…</h2>

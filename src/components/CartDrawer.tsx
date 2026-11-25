@@ -2,7 +2,7 @@ import { Lock, ShoppingBag, Trash2, Truck, X } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useCart } from '../context/cart'
-import { formatMoney, imgSrc, priceOf, productImage, sizeText } from '../lib/shop'
+import { formatMoney, priceOf, productImage, sizeText } from '../lib/shop'
 import { useProducts, useShopConfig } from '../lib/useProducts'
 import { QtyStepper, useOverlay } from './ui'
 
@@ -65,7 +65,7 @@ export function CartDrawer() {
             <div className="flex-1 overflow-y-auto">
               <ul className="divide-y divide-line px-5">
                 {rows.map((r) => {
-                  const img = imgSrc(productImage(r.product, r.color))
+                  const img = productImage(r.product, r.color, r.size)
                   return (
                     <li key={r.key} className="flex gap-4 py-4">
                       <Link to={`/product/${r.product_id}`} onClick={close} className="size-[84px] shrink-0 overflow-hidden rounded-lg border border-line bg-paper">
@@ -91,7 +91,7 @@ export function CartDrawer() {
                   <p className="label-caps mb-3">Goes well with</p>
                   <ul className="space-y-3">
                     {extras.map((p) => {
-                      const img = imgSrc(productImage(p))
+                      const img = productImage(p)
                       return (
                         <li key={p.id} className="flex items-center gap-3">
                           <span className="size-12 shrink-0 overflow-hidden rounded-md bg-paper">{img && <img src={img} alt="" className="size-full object-cover" loading="lazy" />}</span>

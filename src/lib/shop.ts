@@ -9,15 +9,15 @@ export const categoryLabel = (c: string) => (c === 'Accessories' || c === 'Unise
 export const inCategory = (p: { category: string }, c: string) =>
   p.category === c || (p.category === 'Unisex' && (c === 'Men' || c === 'Women'))
 
-export const CATEGORY_INFO: Record<Category, { blurb: string; image: string }> = {
-  Men: { blurb: 'Crew sweatshirts, hoodies, tees and caps', image: 'products/man-olive-cap.webp' },
-  Women: { blurb: 'Embroidered hoodies in nine soft colours', image: 'products/hoodie-beige.webp' },
-  Kids: { blurb: 'Little tees, gift sets and cosy scarves', image: 'products/set-classic.webp' },
-  Accessories: { blurb: 'Caps, mugs, scarves and gift boxes', image: 'products/mug-olive.webp' },
+export const CATEGORY_INFO: Record<Category, { blurb: string }> = {
+  Men: { blurb: 'Crew sweatshirts, hoodies, tees and caps' },
+  Women: { blurb: 'Embroidered hoodies in nine soft colours' },
+  Kids: { blurb: 'Little tees, gift sets and cosy scarves' },
+  Accessories: { blurb: 'Caps, mugs, scarves and gift boxes' },
 }
 
-/** `option` names what `sizes` holds when it isn't sizes (e.g. a design choice). */
-export type Variant = { color: string; hex?: string; option?: string; sizes: string[]; images: string[] }
+/** `option` names what `sizes` holds when it isn't sizes (e.g. a design choice); `by_option` holds the photos of each choice. */
+export type Variant = { color: string; hex?: string; option?: string; sizes: string[]; images: string[]; by_option?: Record<string, string[]> }
 
 export type Product = {
   id: string
@@ -77,12 +77,8 @@ export const countryName = (code: string) => COUNTRIES.find(([c]) => c === code)
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 export const formatMoney = (n: number | string | null | undefined) => money.format(Number(n ?? 0))
 
-/** Same formula as public.product_price() in SQL; used only for the admin live preview. */
-export const marginPrice = (base: number, marginPercent: number) =>
-  Math.round(Math.round(base * 100) * (100 + marginPercent) / 100) / 100
-
-export type ShopConfig = { shipping_flat: number; free_shipping_over: number; express_shipping: number; checkout_mode: 'test' | 'live' }
-export const DEFAULT_CONFIG: ShopConfig = { shipping_flat: 4.95, free_shipping_over: 75, express_shipping: 12.95, checkout_mode: 'test' }
+export type ShopConfig = { shipping_flat: number; free_shipping_over: number; express_shipping: number; checkout_mode: 'test' | 'live'; site_images: Record<string, string> }
+export const DEFAULT_CONFIG: ShopConfig = { shipping_flat: 4.95, free_shipping_over: 75, express_shipping: 12.95, checkout_mode: 'test', site_images: {} }
 
 /** Mirrors public.shipping_cost() so totals shown match what the server charges. */
 export const shippingCost = (cfg: ShopConfig, subtotal: number, method: 'standard' | 'express') =>
@@ -105,6 +101,8 @@ export const deliveryWindow = (method: 'standard' | 'express', from = new Date()
   return `${shortDate(addBusinessDays(from, a))} – ${shortDate(addBusinessDays(from, b))}`
 }
 
+const strings = (v: Json | undefined) => (Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : [])
+
 export const asVariants = (v: Json): Variant[] =>
   Array.isArray(v)
     ? v.flatMap((x) => {
@@ -115,8 +113,10 @@ export const asVariants = (v: Json): Variant[] =>
           color: o.color,
           hex: typeof o.hex === 'string' ? o.hex : undefined,
           option: typeof o.option === 'string' ? o.option : undefined,
-          sizes: Array.isArray(o.sizes) ? o.sizes.filter((s): s is string => typeof s === 'string') : [],
-          images: Array.isArray(o.images) ? o.images.filter((s): s is string => typeof s === 'string') : [],
+          sizes: strings(o.sizes),
+          images: strings(o.images),
+          ...(o.by_option && typeof o.by_option === 'object' && !Array.isArray(o.by_option)
+            && { by_option: Object.fromEntries(Object.entries(o.by_option).map(([k, x]) => [k, strings(x)])) }),
         }]
       })
     : []
@@ -137,16 +137,40 @@ export const sizeText = (s: string) => (/^[\w-]{1,7}$/.test(s) ? `Size ${s}` : s
 
 export const asItems = (v: Json): OrderItem[] => (Array.isArray(v) ? (v as unknown as OrderItem[]) : [])
 
-/** First image to show for a product, optionally for a given colour. */
-export const productImage = (p: Pick<Product, 'images' | 'variants'>, color?: string | null) =>
-  p.variants.find((v) => v.color === color)?.images[0] ?? p.images[0] ?? p.variants[0]?.images[0] ?? null
-
-/** All distinct images of a product, first colour first. */
-export const productImages = (p: Pick<Product, 'images' | 'variants'>, color?: string | null) => {
+/** Photos of one colour (and design option); falls back to the colour, then to the first colour that has photos. */
+export const productImages = (p: Pick<Product, 'images' | 'variants'>, color?: string | null, size?: string | null) => {
   const v = p.variants.find((x) => x.color === color) ?? p.variants[0]
-  const own = v?.images ?? []
-  // a colour without photos borrows the first colour's
-  return [...new Set([...own, ...p.images, ...(own.length || p.images.length ? [] : p.variants[0]?.images ?? [])])].map(imgSrc).filter((u): u is string => !!u)
+  const own = v?.by_option?.[size ?? ''] ?? v?.images ?? []
+  // a colour without photos borrows another colour's
+  const borrowed = own.length || p.images.length ? [] : p.variants.find((x) => x.images.length)?.images ?? []
+  return [...new Set([...own, ...p.images, ...borrowed])].map(imgSrc).filter((u): u is string => !!u)
+}
+export const productImage = (...args: Parameters<typeof productImages>) => productImages(...args)[0] ?? null
+
+// Shades shoppers would look for under one name; "Cherry Red" and "Garnet" both show up under Red.
+const FAMILIES: Record<string, string> = {
+  White: 'white', Black: 'black', Grey: 'grey gray charcoal ash heather silver graphite', Cream: 'cream natural sand beige ivory oat', Brown: 'brown chocolate tan',
+  Red: 'red garnet maroon cardinal burgundy', Pink: 'pink azalea rose', Purple: 'purple lilac violet lavender', Navy: 'navy', Blue: 'blue royal sky teal indigo',
+  Green: 'green olive sage forest mint', Yellow: 'yellow gold mustard', Orange: 'orange',
+}
+const FAMILY_OF = new Map(Object.entries(FAMILIES).flatMap(([f, words]) => words.split(' ').map((w) => [w, f] as const)))
+/** Filter name of a colour: its last word that means a colour ("Heather Dust Blue" -> Blue, "Dark Heather" -> Grey). */
+export const colorFamily = (color: string) => color.toLowerCase().split(/[^a-z]+/).reverse().map((w) => FAMILY_OF.get(w)).find(Boolean) ?? color
+
+/** The colours a shopper asked for: filter names plus any colour typed in the search. */
+export const wantedColors = (families: string[], query: string) =>
+  [...families, ...query.toLowerCase().split(/\s+/).map((w) => FAMILY_OF.get(w)).filter((f): f is string => !!f)]
+
+/** The product's colour to show for those names, preferring one that has photos. */
+export const matchVariant = (p: Pick<Product, 'variants'>, wanted: string[]) => {
+  const hits = p.variants.filter((v) => wanted.includes(colorFamily(v.color)))
+  return hits.find((v) => v.images.length) ?? hits[0]
+}
+
+/** Every word of the search must appear, in any order ("red hoodie"). */
+export const matchesSearch = (p: Pick<Product, 'title' | 'description' | 'category' | 'variants'>, query: string) => {
+  const text = [p.title, p.description, p.category, ...p.variants.flatMap((v) => [v.color, colorFamily(v.color)])].join(' ').toLowerCase()
+  return query.toLowerCase().split(/\s+/).every((w) => text.includes(w))
 }
 
 // Customer-facing order steps; Gelato statuses are mapped to these server-side.
@@ -171,7 +195,6 @@ export const STATUS_HINT: Record<string, string> = {
   refunded: 'This order was refunded.',
   pending: 'Payment has not been completed.',
 }
-export const ALL_STATUSES = Object.keys(STATUS_LABEL)
 export const orderNumber = (id: string) => `LCN-${id.slice(0, 8).toUpperCase()}`
 
 export const formatDate = (iso: string) =>

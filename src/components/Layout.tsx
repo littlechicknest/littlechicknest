@@ -4,13 +4,13 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
-import { categoryLabel, imgSrc, priceLabel, productImage } from '../lib/shop'
+import { categoryLabel, matchesSearch, matchVariant, priceLabel, productImage, wantedColors } from '../lib/shop'
+import { SiteImg } from '../lib/siteImages'
 import { supabase } from '../lib/supabase'
 import { useProducts } from '../lib/useProducts'
 import { CartDrawer } from './CartDrawer'
 import { Toaster, useOverlay } from './ui'
 
-const BASE = import.meta.env.BASE_URL
 const YEAR = new Date().getFullYear()
 export const MAIN_SITE = 'https://littlechicknest.com'
 
@@ -31,7 +31,7 @@ const NAV_2: NavItem[] = [
 ]
 
 export const Logo = ({ className = 'h-14' }: { className?: string }) => (
-  <img src={`${BASE}img/logo.png`} alt="Little Chick Nest" width={480} height={390} className={`${className} w-auto`} />
+  <SiteImg slot="logo" alt="Little Chick Nest" width={480} height={390} className={`${className} w-auto`} />
 )
 
 function useNavState() {
@@ -111,8 +111,7 @@ function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const query = useDeferredValue(q.trim().toLowerCase())
   const { products } = useProducts()
   const navigate = useNavigate()
-  const results = useMemo(() => !query ? [] : (products ?? []).filter((p) =>
-    [p.title, p.category, ...p.variants.map((v) => v.color)].join(' ').toLowerCase().includes(query)).slice(0, 6), [products, query])
+  const results = useMemo(() => !query ? [] : (products ?? []).filter((p) => matchesSearch({ ...p, description: '' }, query)).slice(0, 6), [products, query])
 
   if (!open) return null
   const submit = (e: FormEvent) => { e.preventDefault(); onClose(); navigate(`/shop?q=${encodeURIComponent(q.trim())}`) }
@@ -137,10 +136,11 @@ function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void })
         ) : results.length ? (
           <ul className="max-h-[60vh] divide-y divide-line overflow-y-auto pt-2">
             {results.map((p) => {
-              const img = imgSrc(productImage(p))
+              const color = matchVariant(p, wantedColors([], query))?.color
+              const img = productImage(p, color)
               return (
                 <li key={p.id}>
-                  <Link to={`/product/${p.id}`} onClick={onClose} className="flex items-center gap-4 rounded-lg px-2 py-2.5 hover:bg-cream">
+                  <Link to={`/product/${p.id}${color ? `?color=${encodeURIComponent(color)}` : ''}`} onClick={onClose} className="flex items-center gap-4 rounded-lg px-2 py-2.5 hover:bg-cream">
                     <span className="size-14 shrink-0 overflow-hidden rounded-md bg-cream-2">{img && <img src={img} alt="" className="size-full object-cover" />}</span>
                     <span className="min-w-0 flex-1"><span className="block truncate font-medium">{p.title}</span><span className="text-xs text-muted">{categoryLabel(p.category)}</span></span>
                     <span className="font-semibold text-olive">{priceLabel(p)}</span>
@@ -176,7 +176,7 @@ function AnnouncementBar() {
 }
 
 function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void }) {
-  const { session, profile, isAdmin } = useAuth()
+  const { session, profile } = useAuth()
   const { count, setOpen: openCart } = useCart()
   const { ids } = useWishlist()
   const first = profile?.full_name?.split(' ')[0]
@@ -196,7 +196,6 @@ function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
         </button>
 
         <div className="ml-auto flex items-center gap-0.5 md:ml-0">
-          {isAdmin && <Link to="/admin" className="mr-2 hidden rounded-md bg-olive px-3 py-1.5 text-xs font-semibold tracking-wider text-white uppercase hover:bg-olive-2 sm:inline-block">Admin</Link>}
           <button type="button" onClick={onSearch} className={`${iconBtn} md:hidden`} aria-label="Search"><Search className="size-5" aria-hidden /></button>
           <Link to={session ? '/account' : '/login'} className={`${iconBtn} sm:flex sm:w-auto sm:gap-2 sm:rounded-full sm:px-3`} aria-label={session ? 'My account' : 'Sign in'}>
             <User className="size-5" aria-hidden /><span className="hidden text-sm font-medium sm:inline">{session ? (first ? `Hi, ${first}` : 'My account') : 'Sign in'}</span>
@@ -247,7 +246,7 @@ function Newsletter() {
   }
   return (
     <div className="card grid grid-cols-1 items-center gap-6 px-6 py-7 sm:px-8 md:grid-cols-[auto_minmax(0,1fr)_1.4fr_auto]">
-      <img src={`${BASE}img/chick.png`} alt="" width={84} height={55} className="hidden w-[84px] md:block" />
+      <SiteImg slot="chick" alt="" width={84} height={55} className="hidden w-[84px] md:block" />
       <div>
         <p className="font-display text-lg font-bold text-olive">Join our little nest</p>
         <p className="text-sm text-muted">New designs, chick news and the odd treat. No spam.</p>

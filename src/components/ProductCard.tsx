@@ -8,16 +8,18 @@ import { Img, Stars } from './ui'
 const NEW_DAYS = 21
 const LOADED_AT = Date.now()
 
-export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
+/** `color` shows that colour's photos and opens the product in it (used by the filters and search). */
+export function ProductCard({ product, priority = false, color }: { product: Product; priority?: boolean; color?: string }) {
   const { has, toggle } = useWishlist()
   const { add } = useCart()
-  const imgs = productImages(product)
+  const imgs = productImages(product, color)
+  const shown = product.variants.find((x) => x.color === color)
   const saved = has(product.id)
   const v = product.variants
   // one colour + no sizes = nothing to choose, so it can go straight in the basket
   const quick = v.length <= 1 && !(v[0]?.sizes.length)
   const isNew = LOADED_AT - new Date(product.created_at).getTime() < NEW_DAYS * 864e5
-  const to = `/product/${product.id}`
+  const to = `/product/${product.id}${color ? `?color=${encodeURIComponent(color)}` : ''}`
 
   return (
     <article className="group relative flex h-full flex-col">
@@ -39,6 +41,12 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           {product.is_featured && <span className="rounded-sm bg-orange px-2 py-0.5 text-[10px] font-semibold tracking-wider text-white uppercase">Bestseller</span>}
           {!product.is_featured && isNew && <span className="rounded-sm bg-olive px-2 py-0.5 text-[10px] font-semibold tracking-wider text-white uppercase">New</span>}
         </div>
+
+        {shown && !shown.images.length && (
+          <span className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-olive shadow-sm">
+            <span className="size-3 rounded-full ring-1 ring-black/10" style={{ background: shown.hex ?? '#ccc' }} /> Available in {shown.color}
+          </span>
+        )}
 
         <button
           type="button" onClick={() => toggle(product.id, product.title)} aria-pressed={saved}

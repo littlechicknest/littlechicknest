@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { asPrices, asVariants, DEFAULT_CONFIG, type Product, type ShopConfig } from './shop'
+import { asPrices, asVariants, DEFAULT_CONFIG, safeUrl, type Product, type ShopConfig } from './shop'
 import { supabase } from './supabase'
 
 // shortcut: loads the whole active catalog once per page load; move to paginated RPC past ~500 products
@@ -15,9 +15,6 @@ function load(): Promise<Product[]> {
   })
   return cache
 }
-
-/** Call after admin edits so the storefront picks up changes without a reload. */
-export const invalidateProducts = () => { cache = null; configCache = null }
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[] | null>(null)
@@ -35,18 +32,29 @@ export function useProducts() {
   return { products, error, loading: !products && !error }
 }
 
+const CONFIG_KEY = 'lcn-config-v1'
+function storedConfig(): ShopConfig | null {
+  try {
+    const c = JSON.parse(localStorage.getItem(CONFIG_KEY) ?? 'null')
+    return c?.site_images ? c : null
+  } catch { return null }
+}
+let latest = storedConfig()
 let configCache: Promise<ShopConfig> | null = null
 export function useShopConfig() {
-  const [cfg, setCfg] = useState<ShopConfig | null>(null)
+  const [cfg, setCfg] = useState<ShopConfig | null>(latest)
   useEffect(() => {
     let active = true
     configCache ??= Promise.resolve(supabase.rpc('shop_config')).then(({ data }) => {
       const r = data?.[0]
-      if (!r) { configCache = null; return DEFAULT_CONFIG }
-      return {
+      if (!r) { configCache = null; return latest ?? DEFAULT_CONFIG }
+      latest = {
         shipping_flat: Number(r.shipping_flat), free_shipping_over: Number(r.free_shipping_over),
         express_shipping: Number(r.express_shipping), checkout_mode: r.checkout_mode === 'live' ? 'live' : 'test',
+        site_images: Object.fromEntries(Object.entries(r.site_images ?? {}).filter(([, u]) => safeUrl(u))),
       }
+      try { localStorage.setItem(CONFIG_KEY, JSON.stringify(latest)) } catch { /* storage blocked */ }
+      return latest
     })
     configCache.then((c) => active && setCfg(c))
     return () => { active = false }

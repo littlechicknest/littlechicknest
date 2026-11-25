@@ -16,9 +16,6 @@ export type Database = {
         created_at: string; email: string; id: string; is_read: boolean; message: string; name: string
       }, 'email' | 'message' | 'name'>
       newsletter_subscribers: Table<{ created_at: string; email: string }, 'email'>
-      order_notes: Table<{
-        author_id: string | null; body: string; created_at: string; id: string; order_id: string
-      }, 'body' | 'order_id'>
       orders: Table<{
         created_at: string; currency: string; email: string | null; fulfillment_error: string | null
         fulfillment_status: string | null; id: string; gelato_order_id: string | null; items: Json
@@ -26,12 +23,6 @@ export type Database = {
         stripe_payment_intent_id: string | null; stripe_session_id: string | null; subtotal: number
         total_amount: number; tracking_number: string | null; updated_at: string; user_id: string | null
       }, 'items' | 'total_amount'>
-      products: Table<{
-        base_price: number | null; category: string; created_at: string; description: string
-        external_product_id: string | null; id: string; images: string[]; is_active: boolean
-        is_featured: boolean; is_sample: boolean; manual_price: number | null; print_files: Json; size_guide: Json; skus: Json; source: string; title: string
-        updated_at: string; variants: Json
-      }, 'category' | 'source' | 'title'>
       profiles: Table<{
         created_at: string; default_address: Json | null; email: string | null; full_name: string | null; id: string; phone: string | null; role: string
       }, 'id'>
@@ -39,22 +30,16 @@ export type Database = {
         author_name: string; body: string; created_at: string; id: string; is_approved: boolean
         product_id: string; rating: number; user_id: string
       }, 'product_id' | 'rating'>
-      store_settings: Table<{
-        checkout_mode: string; express_shipping: number; free_shipping_over: number; global_margin_percent: number; id: number
-        last_api_sync: string | null; last_product_sync: string | null; shipping_flat: number; updated_at: string
-      }, never>
     }
     Views: { [_ in never]: never }
     Functions: {
-      admin_webhook_token: { Args: never; Returns: string }
-      admin_daily_sales: { Args: { p_days?: number }; Returns: { day: string; orders: number; revenue: number }[] }
       product_reviews: {
         Args: { p_product_id: string }
         Returns: { author_name: string; body: string; created_at: string; id: string; rating: number }[]
       }
       shop_config: {
         Args: never
-        Returns: { checkout_mode: string; express_shipping: number; free_shipping_over: number; shipping_flat: number }[]
+        Returns: { checkout_mode: string; express_shipping: number; free_shipping_over: number; shipping_flat: number; site_images: Record<string, string> }[]
       }
       place_test_order: { Args: { p_items: Json; p_address: Json; p_shipping_method: string }; Returns: string }
       shop_products: {

@@ -1,10 +1,14 @@
 import { Check } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
+import { Captcha } from '../components/Captcha'
 import { Alert, Field, useTitle } from '../components/ui'
 import { useAuth } from '../context/auth'
+import { SiteImg } from '../lib/siteImages'
 import { appUrl, supabase } from '../lib/supabase'
 import { PasswordInput } from './Account'
+
+const TOO_MANY = 'Too many attempts. Please wait a minute and try again.'
 
 type Mode = 'signin' | 'signup' | 'forgot'
 
@@ -21,6 +25,9 @@ export default function Login() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [accepted, setAccepted] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string>()
+  const [attempt, setAttempt] = useState(0)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ tone: 'error' | 'success'; text: string } | null>(null)
   useTitle(mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Reset password' : 'Sign in')
@@ -34,26 +41,28 @@ export default function Login() {
     setMsg(null)
     const mail = email.trim()
     if (mode === 'signin') {
-      const { error } = await supabase.auth.signInWithPassword({ email: mail, password })
-      if (error) setMsg({ tone: 'error', text: error.message === 'Email not confirmed' ? 'Please confirm your email first. Check your inbox.' : 'That email and password don’t match. Try again or reset your password.' })
+      const { error } = await supabase.auth.signInWithPassword({ email: mail, password, options: { captchaToken } })
+      if (error) setMsg({ tone: 'error', text: error.status === 429 ? TOO_MANY : error.message === 'Email not confirmed' ? 'Please confirm your email first. Check your inbox.' : 'That email and password don’t match. Try again or reset your password.' })
     } else if (mode === 'signup') {
       const { data, error } = await supabase.auth.signUp({
-        email: mail, password, options: { data: { full_name: name.trim() }, emailRedirectTo: appUrl() },
+        email: mail, password, options: { captchaToken, data: { full_name: name.trim(), terms_accepted_at: new Date().toISOString() }, emailRedirectTo: appUrl() },
       })
-      if (error) setMsg({ tone: 'error', text: error.message })
+      if (error) setMsg({ tone: 'error', text: error.status === 429 ? TOO_MANY : error.message })
       else if (!data.session) setMsg({ tone: 'success', text: `Almost there! We’ve sent a confirmation link to ${mail}. Click it, then sign in.` })
     } else {
-      const { error } = await supabase.auth.resetPasswordForEmail(mail, { redirectTo: appUrl() })
+      const { error } = await supabase.auth.resetPasswordForEmail(mail, { captchaToken, redirectTo: appUrl() })
       // same message either way so the form can't be used to discover accounts
       setMsg(error?.status === 429
-        ? { tone: 'error', text: 'Too many attempts. Please wait a minute and try again.' }
+        ? { tone: 'error', text: TOO_MANY }
         : { tone: 'success', text: 'If an account exists for that email, a reset link is on its way.' })
     }
     setBusy(false)
+    setAttempt((n) => n + 1) // a captcha token works once
   }
 
   const google = async () => {
     setMsg(null)
+    if (mode === 'signup' && !accepted) return setMsg({ tone: 'error', text: 'Please tick the box to accept the Terms & Conditions first.' })
     const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: appUrl() } })
     if (error) setMsg({ tone: 'error', text: 'Google sign-in is not available yet. Please use email and password.' })
   }
@@ -62,7 +71,7 @@ export default function Login() {
     <div className="container-x py-8 sm:py-12">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[1.25rem] border border-line bg-paper shadow-[var(--shadow-soft)] md:grid-cols-2">
         <div className="relative hidden md:block">
-          <img src={`${import.meta.env.BASE_URL}banners/login-hoodie.webp`} alt="" className="absolute inset-0 size-full object-cover" />
+          <SiteImg slot="login" alt="" className="absolute inset-0 size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-olive/85 via-olive/25 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-8 text-white">
             <p className="script text-3xl text-yolk">Welcome to the nest</p>
@@ -105,6 +114,13 @@ export default function Login() {
               </Field>
             )}
             {mode === 'signin' && <div className="-mt-1 text-right"><button type="button" onClick={() => switchTo('forgot')} className="text-[13px] font-medium text-olive underline underline-offset-2 hover:text-orange-2">Forgot password?</button></div>}
+            {mode === 'signup' && (
+              <label className="flex items-start gap-2.5 text-[13px] text-muted">
+                <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-orange" />
+                <span>I accept the <Link to="/terms" target="_blank" className="font-medium text-olive underline underline-offset-2">Terms &amp; Conditions</Link> and <Link to="/privacy-policy" target="_blank" className="font-medium text-olive underline underline-offset-2">Privacy Policy</Link></span>
+              </label>
+            )}
+            <Captcha attempt={attempt} onToken={setCaptchaToken} />
             {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
             <button className="btn-primary w-full" disabled={busy}>
               {busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : 'Sign in'}
@@ -112,11 +128,6 @@ export default function Login() {
           </form>
 
           {mode === 'forgot' && <p className="mt-5 text-center text-sm"><button type="button" onClick={() => switchTo('signin')} className="font-semibold text-orange-2 underline">Back to sign in</button></p>}
-          {mode === 'signup' && (
-            <p className="mt-5 text-center text-xs text-muted">
-              By creating an account you agree to our <Link to="/terms" className="underline">Terms</Link> and <Link to="/privacy-policy" className="underline">Privacy Policy</Link>.
-            </p>
-          )}
         </div>
       </div>
     </div>

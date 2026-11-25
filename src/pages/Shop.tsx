@@ -3,7 +3,7 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard'
 import { Alert, Empty, Modal, PageHeader, useTitle } from '../components/ui'
-import { CATEGORIES, CATEGORY_INFO, categoryLabel, inCategory as isIn, type Product } from '../lib/shop'
+import { CATEGORIES, CATEGORY_INFO, categoryLabel, colorFamily, inCategory as isIn, matchesSearch, matchVariant, wantedColors, type Product } from '../lib/shop'
 import { useProducts } from '../lib/useProducts'
 
 const SORTS = { featured: 'Featured', new: 'Newest', 'price-asc': 'Price: low to high', 'price-desc': 'Price: high to low', az: 'Name: A to Z' } as const
@@ -42,16 +42,21 @@ export default function Shop() {
   // facets come from what's actually in this category
   const facets = useMemo(() => {
     const c = new Map<string, string>(), s = new Set<string>()
-    for (const p of inCategory) for (const v of p.variants) { c.set(v.color, v.hex ?? '#ccc'); v.sizes.forEach((x) => s.add(x)) }
+    for (const p of inCategory) for (const v of p.variants) {
+      const f = colorFamily(v.color)
+      if (!c.has(f) || v.color.endsWith(f)) c.set(f, v.hex ?? '#ccc')
+      if (!v.option) v.sizes.forEach((x) => s.add(x)) // design choices are not sizes
+    }
     const sz = [...s].sort((a, b) => (SIZE_ORDER.indexOf(a) + 1 || 99) - (SIZE_ORDER.indexOf(b) + 1 || 99))
     return { colors: [...c.entries()].sort(([a], [b]) => a.localeCompare(b)), sizes: sz }
   }, [inCategory])
 
   const shown = useMemo(() => {
     const out = inCategory.filter((p) =>
-      (!query || [p.title, p.description, p.category, ...p.variants.map((v) => v.color)].join(' ').toLowerCase().includes(query)) &&
-      (!colors.length || p.variants.some((v) => colors.includes(v.color))) &&
-      (!sizes.length || p.variants.some((v) => v.sizes.some((s) => sizes.includes(s)))) &&
+      (!query || matchesSearch(p, query)) &&
+      // colour and size must be available together
+      ((!colors.length && !sizes.length) || p.variants.some((v) =>
+        (!colors.length || colors.includes(colorFamily(v.color))) && (!sizes.length || v.sizes.some((s) => sizes.includes(s))))) &&
       (!price || (p.price >= PRICES[price][1] && p.price < PRICES[price][2])))
     const by: Record<Sort, (a: Product, b: Product) => number> = {
       featured: (a, b) => Number(b.is_featured) - Number(a.is_featured) || b.created_at.localeCompare(a.created_at),
@@ -60,8 +65,13 @@ export default function Shop() {
       'price-desc': (a, b) => b.price - a.price,
       az: (a, b) => a.title.localeCompare(b.title),
     }
-    return out.sort(by[sort])
+    // with a colour chosen, products that have a photo in it come first
+    const wanted = wantedColors(colors, query)
+    const pictured = (p: Product) => Number(!!matchVariant(p, wanted)?.images.length)
+    return out.sort((a, b) => (sort === 'featured' && wanted.length ? pictured(b) - pictured(a) : 0) || by[sort](a, b))
   }, [inCategory, query, colors, sizes, price, sort])
+
+  const wanted = wantedColors(colors, query)
 
   const counts = useMemo(() => {
     const m: Record<string, number> = {}
@@ -172,7 +182,7 @@ export default function Shop() {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 md:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, i) => <ProductCardSkeleton key={i} />)}</div>
               ) : shown.length ? (
                 <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 md:grid-cols-3 xl:grid-cols-4">
-                  {shown.map((p, i) => <li key={p.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}><ProductCard product={p} priority={i < 4} /></li>)}
+                  {shown.map((p, i) => <li key={p.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}><ProductCard product={p} priority={i < 4} color={matchVariant(p, wanted)?.color} /></li>)}
                 </ul>
               ) : (
                 <Empty title={active.length ? 'Nothing matches those filters' : 'New designs are hatching'}>

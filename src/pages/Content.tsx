@@ -3,10 +3,10 @@ import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { MAIN_SITE, TrustBadges } from '../components/Layout'
 import { PageHeader, useTitle } from '../components/ui'
+import { SiteImg } from '../lib/siteImages'
 
 const EMAIL = 'info.littlechicknest@gmail.com'
 const UPDATED = 'November 17, 2026'
-const BASE = import.meta.env.BASE_URL
 const Mail = () => <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
 
 function LegalPage({ title, children }: { title: string; children: ReactNode }) {
@@ -28,7 +28,7 @@ export function About() {
       </PageHeader>
       <div className="container-x space-y-8">
         <section className="grid items-center gap-8 overflow-hidden rounded-[1.25rem] border border-line bg-paper shadow-[var(--shadow-soft)] md:grid-cols-2">
-          <img src={`${BASE}banners/about-mug.webp`} alt="Little Chick Nest mug on a wooden shelf" loading="lazy" className="aspect-[4/3] size-full object-cover" />
+          <SiteImg slot="about-top" alt="Little Chick Nest mug on a wooden shelf" loading="lazy" className="aspect-[4/3] size-full object-cover" />
           <div className="space-y-4 p-6 text-ink/85 sm:p-10">
             <h2 className="text-2xl sm:text-3xl">A calm little corner of the internet</h2>
             <p>We started Little Chick Nest so families could slow down and watch our chicks grow from day one: eating, sleeping, exploring and growing up.</p>
@@ -38,13 +38,13 @@ export function About() {
           </div>
         </section>
         <section className="grid gap-4 sm:grid-cols-3">
-          {[
-            ['products/tee-cream-detail.webp', 'Thoughtful materials', 'Organic cotton tees, brushed-fleece hoodies and stoneware mugs, chosen to last.'],
-            ['products/cap-back.webp', 'Embroidered with care', 'Our little chick is stitched, not stuck on, so it looks as good on day 100 as day one.'],
-            ['products/set-classic.webp', 'Made for gifting', 'Sets and gift boxes for every age, packed in kraft boxes that are easy to recycle.'],
-          ].map(([img, title, text]) => (
+          {([
+            ['about-1', 'Thoughtful materials', 'Organic cotton tees, brushed-fleece hoodies and stoneware mugs, chosen to last.'],
+            ['about-2', 'Embroidered with care', 'Our little chick is stitched, not stuck on, so it looks as good on day 100 as day one.'],
+            ['about-3', 'Made for gifting', 'Sets and gift boxes for every age, packed in kraft boxes that are easy to recycle.'],
+          ] as const).map(([slot, title, text]) => (
             <div key={title} className="card overflow-hidden">
-              <img src={`${BASE}${img}`} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+              <SiteImg slot={slot} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
               <div className="p-5"><h3 className="text-lg">{title}</h3><p className="mt-1 text-sm text-muted">{text}</p></div>
             </div>
           ))}
@@ -223,7 +223,7 @@ export function NotFoundContent() {
   return (
     <div className="container-x grid min-h-[60vh] place-items-center py-12 text-center">
       <div>
-        <img src={`${BASE}img/chick.png`} alt="" width={110} height={72} className="mx-auto w-[110px]" />
+        <SiteImg slot="chick" alt="" width={110} height={72} className="mx-auto w-[110px]" />
         <p className="script mt-4 text-3xl">Oops, 404</p>
         <h1 className="mt-1 text-3xl">This chick has wandered off</h1>
         <p className="mt-2 text-muted">We couldn’t find that page. It may have moved, or the link may be wrong.</p>

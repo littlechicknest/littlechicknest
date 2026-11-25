@@ -4,10 +4,11 @@ import { Link } from 'react-router'
 import { ProductCarousel } from '../components/Carousel'
 import { MAIN_SITE, TrustBadges } from '../components/Layout'
 import { Alert, useTitle } from '../components/ui'
-import { CATEGORIES, CATEGORY_INFO, categoryLabel, imgSrc, inCategory, type Category, type Product } from '../lib/shop'
+import { CATEGORIES, CATEGORY_INFO, categoryLabel, inCategory, type Category, type Product } from '../lib/shop'
+import { SiteImg } from '../lib/siteImages'
 import { useProducts } from '../lib/useProducts'
 
-const BASE = import.meta.env.BASE_URL
+const categorySlot = (c: Category) => `category-${c.toLowerCase() as Lowercase<Category>}` as const
 
 const SLIDES = [
   {
@@ -16,7 +17,7 @@ const SLIDES = [
     accent: 'Cosy hoodies in soft, earthy colours.',
     text: 'Heavyweight fleece with our little chick embroidered on the chest. Made to order, so nothing goes to waste.',
     cta: ['/shop?category=Women', "Shop women's"], cta2: ['/shop?category=Men', "Shop men's"],
-    image: 'banners/hero-hoodie.webp', alt: 'Woman wearing a cream Little Chick Nest hoodie with the chick logo embroidered on the chest', pos: 'object-[50%_30%]',
+    image: 'hero-1', alt: 'Woman wearing a cream Little Chick Nest hoodie with the chick logo embroidered on the chest', pos: 'object-[50%_30%]',
   },
   {
     kicker: 'Embroidered caps',
@@ -24,7 +25,7 @@ const SLIDES = [
     accent: 'big smiles.',
     text: 'Washed cotton twill, a brass buckle and our chick stitched in mustard and olive. One size fits most.',
     cta: ['/shop?category=Accessories', 'Shop accessories'], cta2: ['/shop?category=Kids', "Kids' caps"],
-    image: 'banners/hero-cap.webp', alt: 'Cream cap embroidered with the Little Chick Nest logo', pos: 'object-center',
+    image: 'hero-2', alt: 'Cream cap embroidered with the Little Chick Nest logo', pos: 'object-center',
   },
   {
     kicker: 'For slow mornings',
@@ -32,7 +33,7 @@ const SLIDES = [
     accent: 'Support our flock.',
     text: 'Stoneware mugs and gift boxes for anyone who loves our chicks. Every order helps feed and care for them.',
     cta: ['/shop?q=mug', 'Shop mugs'], cta2: ['/shop?q=gift', 'Gift ideas'],
-    image: 'banners/hero-mug.webp', alt: 'Cream Little Chick Nest mug on a wooden table', pos: 'object-center',
+    image: 'hero-3', alt: 'Cream Little Chick Nest mug on a wooden table', pos: 'object-center',
   },
 ] as const
 
@@ -70,7 +71,7 @@ function Hero() {
         </div>
         <div className="relative order-1 aspect-[4/3] overflow-hidden sm:aspect-[3/2] md:order-2 md:aspect-auto">
           {SLIDES.map((sl, n) => (
-            <img key={sl.image} src={`${BASE}${sl.image}`} alt={n === i ? sl.alt : ''} aria-hidden={n !== i}
+            <SiteImg key={sl.image} slot={sl.image} alt={n === i ? sl.alt : ''} aria-hidden={n !== i}
               fetchPriority={n === 0 ? 'high' : 'low'} loading={n === 0 ? 'eager' : 'lazy'}
               className={`absolute inset-0 size-full object-cover ${sl.pos} transition-opacity duration-1000 ${n === i ? 'opacity-100' : 'opacity-0'}`} />
           ))}
@@ -104,7 +105,7 @@ function CategoryCircles({ counts }: { counts: Record<string, number> }) {
           <li key={c}>
             <Link to={`/shop?category=${c}`} className="group flex flex-col items-center text-center">
               <span className="relative size-32 overflow-hidden rounded-full border-4 border-paper shadow-[var(--shadow-soft)] ring-1 ring-line transition duration-300 group-hover:shadow-[var(--shadow-lift)] group-hover:ring-orange sm:size-40">
-                <img src={`${BASE}${CATEGORY_INFO[c].image}`} alt="" loading="lazy" className="size-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <SiteImg slot={categorySlot(c)} alt="" loading="lazy" className="size-full object-cover transition-transform duration-700 group-hover:scale-110" />
               </span>
               <span className="mt-3 font-display text-lg font-bold text-olive group-hover:text-orange-2">{categoryLabel(c)}</span>
               <span className="text-xs text-muted">{counts[c] ? `${counts[c]} products` : CATEGORY_INFO[c].blurb}</span>
@@ -117,7 +118,7 @@ function CategoryCircles({ counts }: { counts: Record<string, number> }) {
 }
 
 function StoryBanner() {
-  const pics = [['banners/story-hoodie.webp', 'Cream hoodie with the chick logo'], ['banners/story-cap.webp', 'Embroidered cap'], ['banners/story-mug.webp', 'Mug with the chick logo']]
+  const pics = [['story-1', 'Cream hoodie with the chick logo'], ['story-2', 'Embroidered cap'], ['story-3', 'Mug with the chick logo']] as const
   return (
     <section className="my-6 grid grid-cols-1 items-center gap-6 overflow-hidden rounded-[1.25rem] border border-line bg-[#fffaf2] p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_1.1fr]">
       <div className="px-2 py-4 sm:px-4">
@@ -130,8 +131,8 @@ function StoryBanner() {
         </div>
       </div>
       <div className="grid grid-cols-3 gap-3">
-        {pics.map(([src, alt], n) => (
-          <img key={src} src={`${BASE}${src}`} alt={alt} loading="lazy" className={`aspect-[3/4] w-full rounded-xl object-cover shadow-[var(--shadow-soft)] ${n === 1 ? 'translate-y-4' : ''}`} />
+        {pics.map(([slot, alt], n) => (
+          <SiteImg key={slot} slot={slot} alt={alt} loading="lazy" className={`aspect-[3/4] w-full rounded-xl object-cover shadow-[var(--shadow-soft)] ${n === 1 ? 'translate-y-4' : ''}`} />
         ))}
       </div>
     </section>
@@ -147,11 +148,11 @@ const WHY = [
 function Why() {
   return (
     <section aria-labelledby="why" className="my-8 grid grid-cols-1 items-center gap-8 overflow-hidden rounded-[1.25rem] border border-line bg-paper p-4 shadow-[var(--shadow-soft)] sm:p-6 lg:grid-cols-[minmax(0,1fr)_1.15fr]">
-      <img src={`${BASE}products/gift-box.webp`} alt="Little Chick Nest gift box with a cap, tee and mug" loading="lazy" className="aspect-[4/3] w-full rounded-xl object-cover" />
+      <SiteImg slot="why" alt="Little Chick Nest gift box with a cap, tee and mug" loading="lazy" className="aspect-[4/3] w-full rounded-xl object-cover" />
       <div className="px-2 pb-4 lg:pr-6">
         <div className="flex items-center justify-between gap-4">
           <h2 id="why" className="text-2xl sm:text-3xl">Why families love our shop</h2>
-          <img src={`${BASE}img/chick.png`} alt="" width={96} height={63} className="hidden h-16 w-auto sm:block" />
+          <SiteImg slot="chick" alt="" width={96} height={63} className="hidden h-16 w-auto sm:block" />
         </div>
         <ul className="mt-6 grid gap-5 sm:grid-cols-2">
           {WHY.map(([badge, title, text]) => (
@@ -188,7 +189,7 @@ export default function Home() {
   const carousel = (s: (typeof SECTIONS)[number]) => products && !byCat[s.cat]?.length ? null : (
     <ProductCarousel key={s.cat} id={`c-${s.cat}`} title={s.title} subtitle={s.subtitle}
       products={products ? (byCat[s.cat] ?? []).slice(0, 6) : null}
-      viewMore={{ to: `/shop?category=${s.cat}`, label: `All ${categoryLabel(s.cat).toLowerCase()}`, image: imgSrc(CATEGORY_INFO[s.cat].image) ?? undefined }} />
+      viewMore={{ to: `/shop?category=${s.cat}`, label: `All ${categoryLabel(s.cat).toLowerCase()}`, image: categorySlot(s.cat) }} />
   )
 
   return (

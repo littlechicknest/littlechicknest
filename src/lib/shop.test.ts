@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { addBusinessDays, asVariants, categoryLabel, DEFAULT_CONFIG, imgSrc, inCategory, marginPrice, priceLabel, priceOf, productImages, safeUrl, shippingCost, sizeText } from './shop'
+import { addBusinessDays, asVariants, categoryLabel, colorFamily, DEFAULT_CONFIG, imgSrc, inCategory, matchesSearch, matchVariant, priceLabel, priceOf, productImages, safeUrl, shippingCost, sizeText, wantedColors } from './shop'
 
-describe('marginPrice', () => {
-  it('matches the client examples', () => {
-    expect(marginPrice(15, 100)).toBe(30)
-    expect(marginPrice(15, 50)).toBe(22.5)
-    expect(marginPrice(9.99, 1)).toBe(10.09)
-    expect(marginPrice(20.35, 50)).toBe(30.53) // half-cent, must round like Postgres
+describe('colours', () => {
+  const p = { title: 'Hoodie', description: '', category: 'Men', images: [], variants: [
+    { color: 'White', sizes: [], images: ['w.webp'] }, { color: 'Cardinal Red', sizes: [], images: [] }, { color: 'Cherry Red', sizes: [], images: ['r.webp'] }] }
+  it('groups shades', () => {
+    expect(['Cherry Red', 'Garnet', 'Dark Heather', 'Heather Dust Blue', 'Navy', 'Ceramic Pink', 'Zzz'].map(colorFamily)).toEqual(['Red', 'Red', 'Grey', 'Blue', 'Navy', 'Pink', 'Zzz'])
+  })
+  it('shows the colour that was filtered or searched, preferring one with photos', () => {
+    expect(matchVariant(p, ['Red'])?.color).toBe('Cherry Red')
+    expect(matchVariant(p, wantedColors([], 'red hoodie'))?.color).toBe('Cherry Red')
+    expect(matchVariant(p, [])).toBeUndefined()
+    expect([matchesSearch(p, 'red hoodie'), matchesSearch(p, 'red mug')]).toEqual([true, false])
+  })
+  it('shows the photo of the chosen colour + design option', () => {
+    const cap = { images: [], variants: [{ color: 'White', option: 'Design', sizes: ['A', 'B'], images: ['a.webp', 'b.webp'], by_option: { A: ['a.webp'] } }] }
+    expect(productImages(cap, 'White', 'A').map((u) => u.slice(-6))).toEqual(['a.webp'])
+    expect(productImages(cap, 'White', 'B')).toHaveLength(2)
   })
 })
 

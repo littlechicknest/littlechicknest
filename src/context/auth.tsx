@@ -7,7 +7,6 @@ import { supabase } from '../lib/supabase'
 type AuthState = {
   session: Session | null
   profile: Tables<'profiles'> | null
-  isAdmin: boolean
   loading: boolean
   refreshProfile: () => Promise<void>
   signOut: () => Promise<void>
@@ -52,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthState = {
     session,
     profile,
-    isAdmin: profile?.role === 'admin',
     loading: loading || (!!session && loaded.uid !== session.user.id),
     refreshProfile: () => loadProfile(session),
     signOut: async () => {

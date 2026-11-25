@@ -2,6 +2,7 @@ import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type { Product } from '../lib/shop'
+import { SiteImg, type Slot } from '../lib/siteImages'
 import { ProductCard, ProductCardSkeleton } from './ProductCard'
 
 const AUTOPLAY_MS = 4500
@@ -12,7 +13,7 @@ type Props = {
   title: string
   subtitle?: string
   products: Product[] | null
-  viewMore?: { to: string; label: string; image?: string }
+  viewMore?: { to: string; label: string; image?: Slot }
   autoplay?: boolean
 }
 
@@ -104,7 +105,7 @@ export function ProductCarousel({ id, title, subtitle, products, viewMore, autop
         {products && viewMore && (
           <li className={ITEM}>
             <Link to={viewMore.to} className="group relative flex aspect-square flex-col items-center justify-center gap-3 overflow-hidden rounded-[var(--radius-card)] bg-olive p-6 text-center text-white">
-              {viewMore.image && <img src={viewMore.image} alt="" loading="lazy" className="absolute inset-0 size-full object-cover opacity-25 transition duration-700 group-hover:scale-105 group-hover:opacity-35" />}
+              {viewMore.image && <SiteImg slot={viewMore.image} alt="" loading="lazy" className="absolute inset-0 size-full object-cover opacity-25 transition duration-700 group-hover:scale-105 group-hover:opacity-35" />}
               <span className="relative script text-2xl text-yolk">See them all</span>
               <span className="relative font-display text-xl font-bold">{viewMore.label}</span>
               <span className="relative grid size-11 place-items-center rounded-full bg-orange transition-transform group-hover:translate-x-1"><ArrowRight className="size-5" aria-hidden /></span>

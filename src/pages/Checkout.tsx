@@ -8,7 +8,7 @@ import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import type { Json, Tables } from '../lib/database.types'
 import {
-  asAddress, asItems, COUNTRIES, deliveryWindow, EMPTY_ADDRESS, formatMoney, imgSrc, orderNumber, productImage, shippingCost, type Address,
+  asAddress, asItems, COUNTRIES, deliveryWindow, EMPTY_ADDRESS, formatMoney, orderNumber, productImage, shippingCost, type Address,
 } from '../lib/shop'
 import { functionError, supabase } from '../lib/supabase'
 import { useShopConfig } from '../lib/useProducts'
@@ -127,7 +127,7 @@ export default function Checkout() {
         </div>
         <ul className="divide-y divide-line">
           {rows.map((r) => {
-            const img = imgSrc(productImage(r.product, r.color))
+            const img = productImage(r.product, r.color, r.size)
             return (
               <li key={r.key} className="flex items-center gap-3 py-3">
                 <span className="relative size-16 shrink-0 rounded-lg border border-line bg-paper">

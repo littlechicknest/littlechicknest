@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Heart, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Truck } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { ProductCarousel } from '../components/Carousel'
 import { Accordion, Alert, Breadcrumbs, Field, Modal, QtyStepper, Spinner, Stars, useTitle } from '../components/ui'
 import { useAuth } from '../context/auth'
@@ -138,7 +138,8 @@ function ProductView({ product }: { product: P }) {
   const { add } = useCart()
   const { has, toggle } = useWishlist()
   const cfg = useShopConfig()
-  const [color, setColor] = useState(product.variants[0]?.color ?? null)
+  const [params] = useSearchParams()
+  const [color, setColor] = useState((product.variants.find((v) => v.color === params.get('color')) ?? product.variants[0])?.color ?? null)
   const variant = product.variants.find((v) => v.color === color)
   const sizes = variant?.sizes ?? []
   const [size, setSize] = useState<string | null>(null)
@@ -147,7 +148,7 @@ function ProductView({ product }: { product: P }) {
   const [guide, setGuide] = useState(false)
   const [showBar, setShowBar] = useState(false)
   const buyRef = useRef<HTMLDivElement>(null)
-  const images = useMemo(() => productImages(product, color), [product, color])
+  const images = useMemo(() => productImages(product, color, size), [product, color, size])
   const saved = has(product.id)
   const noPhotos = !!variant && !variant.images.length && !product.images.length && images.length > 0
   const option = variant?.option ?? 'Size'
@@ -185,8 +186,8 @@ function ProductView({ product }: { product: P }) {
       <Breadcrumbs items={[[categoryLabel(product.category), `/shop?category=${product.category}`], [product.title]]} />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14">
         <div>
-          <Gallery key={color} images={images} alt={`${product.title}${color ? ` in ${noPhotos ? product.variants[0].color : color}` : ''}`} />
-          {noPhotos && <p className="mt-3 text-center text-[13px] text-muted">Photo shows {product.variants[0].color}. Yours will be made in <strong className="text-olive">{color}</strong>.</p>}
+          <Gallery key={images[0]} images={images} alt={`${product.title}${color && !noPhotos ? ` in ${color}` : ''}`} />
+          {noPhotos && <p className="mt-3 text-center text-[13px] text-muted">Photo shows another colour. Yours will be made in <strong className="text-olive">{color}</strong>.</p>}
         </div>
 
         <div className="min-w-0">
@@ -223,7 +224,10 @@ function ProductView({ product }: { product: P }) {
               <div className="flex flex-wrap gap-2">
                 {sizes.map((s) => (
                   <button key={s} type="button" onClick={() => { setSize(s); setNeedSize(false) }} aria-pressed={s === size}
-                    className={`min-h-11 min-w-14 rounded-md border px-3 text-sm font-medium transition ${s === size ? 'border-olive bg-olive text-white' : needSize ? 'border-red-300 bg-paper' : 'border-sand bg-paper hover:border-olive'}`}>{s}</button>
+                    className={`min-h-11 overflow-hidden rounded-md border text-sm ${variant?.by_option?.[s]?.[0] ? 'w-28 sm:w-32' : 'min-w-14 px-3'} font-medium transition ${s === size ? 'border-olive bg-olive text-white' : needSize ? 'border-red-300 bg-paper' : 'border-sand bg-paper hover:border-olive'}`}>
+                    {variant?.by_option?.[s]?.[0] && <img src={variant.by_option[s][0]} alt="" className="aspect-square w-full bg-cream-2 object-cover" />}
+                    <span className="block py-2">{s}</span>
+                  </button>
                 ))}
               </div>
               {needSize && <p role="alert" className="mt-2 text-sm font-medium text-red-700">Please choose {option === 'Size' ? 'a size' : 'an option'} first.</p>}

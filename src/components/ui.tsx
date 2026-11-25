@@ -3,6 +3,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore, type R
 import { createPortal } from 'react-dom'
 import { Link, Navigate, useLocation } from 'react-router'
 import { useAuth } from '../context/auth'
+import { SiteImg } from '../lib/siteImages'
 
 export function useTitle(title: string) {
   useEffect(() => {
@@ -84,7 +85,7 @@ export function Stars({ value, size = 'size-4' }: { value: number; size?: string
 
 export const Empty = ({ title, icon, children }: { title: string; icon?: ReactNode; children?: ReactNode }) => (
   <div className="card flex flex-col items-center gap-3 px-6 py-14 text-center">
-    {icon ?? <img src={`${import.meta.env.BASE_URL}img/chick.png`} alt="" width={80} height={52} className="w-20" />}
+    {icon ?? <SiteImg slot="chick" alt="" width={80} height={52} className="w-20" />}
     <h2 className="text-xl">{title}</h2>
     {children && <div className="max-w-md text-muted">{children}</div>}
   </div>
@@ -195,12 +196,11 @@ export function Img({ src, alt, className = '', ...rest }: React.ImgHTMLAttribut
   return <img src={src} alt={alt} loading="lazy" decoding="async" {...rest} className={`bg-cream-2 ${className}`} />
 }
 
-/** Gate for signed-in (and optionally admin) routes. RLS is the real guard; this is UX. */
-export function RequireAuth({ admin = false, children }: { admin?: boolean; children: ReactNode }) {
-  const { session, isAdmin, loading } = useAuth()
+/** Gate for signed-in routes. RLS is the real guard; this is UX. */
+export function RequireAuth({ children }: { children: ReactNode }) {
+  const { session, loading } = useAuth()
   const location = useLocation()
   if (loading) return <Spinner />
   if (!session) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />
-  if (admin && !isAdmin) return <Navigate to="/" replace />
   return <>{children}</>
 }
