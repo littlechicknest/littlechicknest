@@ -4,10 +4,11 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
+import { CURRENCIES, setCurrency, useCurrency, type Currency } from '../lib/currency'
 import { categoryLabel, matchesSearch, matchVariant, priceLabel, productImage, wantedColors } from '../lib/shop'
 import { SiteImg } from '../lib/siteImages'
 import { supabase } from '../lib/supabase'
-import { useProducts } from '../lib/useProducts'
+import { useProducts, useRates } from '../lib/useProducts'
 import { CartDrawer } from './CartDrawer'
 import { Toaster, useOverlay } from './ui'
 
@@ -107,6 +108,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 const POPULAR = ['Hoodie', 'Cap', 'Mug', 'Gift', 'Kids']
 function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const ref = useOverlay(open, onClose)
+  useCurrency()
   const [q, setQ] = useState('')
   const query = useDeferredValue(q.trim().toLowerCase())
   const { products } = useProducts()
@@ -175,6 +177,22 @@ function AnnouncementBar() {
   )
 }
 
+/** USD / GBP price display. Hidden until the pound rate has loaded. */
+function CurrencySwitch() {
+  const cur = useCurrency()
+  const ready = useRates()
+  if (!ready) return null
+  return (
+    <label className="relative grid h-11 place-items-center rounded-full px-1 text-olive hover:bg-orange-soft">
+      <span className="sr-only">Show prices in</span>
+      <select value={cur} onChange={(e) => setCurrency(e.target.value as Currency)}
+        className="h-11 cursor-pointer appearance-none bg-transparent px-2 text-sm font-semibold outline-none">
+        {CURRENCIES.map((c) => <option key={c} value={c}>{c === 'GBP' ? '£ GBP' : '$ USD'}</option>)}
+      </select>
+    </label>
+  )
+}
+
 function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void }) {
   const { session, profile } = useAuth()
   const { count, setOpen: openCart } = useCart()
@@ -196,6 +214,7 @@ function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
         </button>
 
         <div className="ml-auto flex items-center gap-0.5 md:ml-0">
+          <CurrencySwitch />
           <button type="button" onClick={onSearch} className={`${iconBtn} md:hidden`} aria-label="Search"><Search className="size-5" aria-hidden /></button>
           <Link to={session ? '/account' : '/login'} className={`${iconBtn} sm:flex sm:w-auto sm:gap-2 sm:rounded-full sm:px-3`} aria-label={session ? 'My account' : 'Sign in'}>
             <User className="size-5" aria-hidden /><span className="hidden text-sm font-medium sm:inline">{session ? (first ? `Hi, ${first}` : 'My account') : 'Sign in'}</span>

@@ -1,3 +1,4 @@
+import { currency, usdRate } from './currency'
 import type { Json } from './database.types'
 
 export const CATEGORIES = ['Men', 'Women', 'Kids', 'Accessories'] as const
@@ -74,8 +75,13 @@ export const COUNTRIES: [string, string][] = [
 ]
 export const countryName = (code: string) => COUNTRIES.find(([c]) => c === code)?.[1] ?? code
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-export const formatMoney = (n: number | string | null | undefined) => money.format(Number(n ?? 0))
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const gbp = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })
+/** Always US dollars: what was or will be charged (orders, checkout). */
+export const formatUsd = (n: number | string | null | undefined) => usd.format(Number(n ?? 0))
+/** A USD amount in the shopper's chosen currency (see lib/currency). Components showing it call useCurrency(). */
+export const formatMoney = (n: number | string | null | undefined) =>
+  currency() === 'GBP' ? gbp.format(Number(n ?? 0) / usdRate('GBP')) : formatUsd(n)
 
 export type ShopConfig = { shipping_flat: number; free_shipping_over: number; express_shipping: number; checkout_mode: 'test' | 'live'; site_images: Record<string, string> }
 export const DEFAULT_CONFIG: ShopConfig = { shipping_flat: 4.95, free_shipping_over: 75, express_shipping: 12.95, checkout_mode: 'test', site_images: {} }

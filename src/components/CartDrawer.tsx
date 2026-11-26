@@ -2,12 +2,14 @@ import { Lock, ShoppingBag, Trash2, Truck, X } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useCart } from '../context/cart'
+import { useCurrency } from '../lib/currency'
 import { formatMoney, priceOf, productImage, sizeText } from '../lib/shop'
 import { useProducts, useShopConfig } from '../lib/useProducts'
 import { QtyStepper, useOverlay } from './ui'
 
 export function FreeShippingBar({ subtotal }: { subtotal: number }) {
   const cfg = useShopConfig()
+  useCurrency()
   if (!cfg || cfg.free_shipping_over <= 0) return null
   const left = cfg.free_shipping_over - subtotal
   const pct = Math.min(100, (subtotal / cfg.free_shipping_over) * 100)
@@ -27,6 +29,7 @@ export function FreeShippingBar({ subtotal }: { subtotal: number }) {
 
 export function CartDrawer() {
   const { rows, subtotal, open, setOpen, setQuantity, remove, add } = useCart()
+  const cur = useCurrency()
   const close = useCallback(() => setOpen(false), [setOpen])
   const ref = useOverlay(open, close)
   const navigate = useNavigate()
@@ -107,6 +110,7 @@ export function CartDrawer() {
             </div>
             <div className="space-y-3 border-t border-line bg-paper px-5 pt-4 pb-5">
               <div className="flex justify-between text-base font-semibold text-olive"><span>Subtotal</span><span>{formatMoney(subtotal)}</span></div>
+            {cur !== 'USD' && <p className="text-xs text-muted">Prices in {cur} are a guide. You pay in US dollars at checkout.</p>}
               <p className="text-xs text-muted">Delivery is calculated at checkout.</p>
               <button type="button" onClick={() => { close(); navigate('/checkout') }} className="btn-primary w-full"><Lock className="size-4" aria-hidden /> Checkout</button>
               <button type="button" onClick={close} className="w-full text-center text-[13px] font-medium text-olive underline-offset-2 hover:underline">Continue shopping</button>

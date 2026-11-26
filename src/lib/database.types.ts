@@ -41,6 +41,7 @@ export type Database = {
         Args: never
         Returns: { checkout_mode: string; express_shipping: number; free_shipping_over: number; shipping_flat: number; site_images: Record<string, string> }[]
       }
+      shop_rates: { Args: never; Returns: Json }
       place_test_order: { Args: { p_items: Json; p_address: Json; p_shipping_method: string }; Returns: string }
       shop_products: {
         Args: never

@@ -2,6 +2,7 @@ import { Heart, ShoppingBag } from 'lucide-react'
 import { Link } from 'react-router'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
+import { useCurrency } from '../lib/currency'
 import { priceLabel, productImages, type Product } from '../lib/shop'
 import { Img, Stars } from './ui'
 
@@ -12,6 +13,7 @@ const LOADED_AT = Date.now()
 export function ProductCard({ product, priority = false, color }: { product: Product; priority?: boolean; color?: string }) {
   const { has, toggle } = useWishlist()
   const { add } = useCart()
+  useCurrency()
   const imgs = productImages(product, color)
   const shown = product.variants.find((x) => x.color === color)
   const saved = has(product.id)

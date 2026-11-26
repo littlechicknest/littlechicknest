@@ -8,9 +8,10 @@ import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import type { Json, Tables } from '../lib/database.types'
 import {
-  asAddress, asItems, COUNTRIES, deliveryWindow, EMPTY_ADDRESS, formatMoney, orderNumber, productImage, shippingCost, type Address,
+  asAddress, asItems, COUNTRIES, deliveryWindow, EMPTY_ADDRESS, formatMoney, formatUsd, orderNumber, productImage, shippingCost, type Address,
 } from '../lib/shop'
 import { functionError, supabase } from '../lib/supabase'
+import { useCurrency } from '../lib/currency'
 import { useShopConfig } from '../lib/useProducts'
 
 type Method = 'standard' | 'express'
@@ -40,6 +41,7 @@ export default function Checkout() {
   const { session, profile, refreshProfile, loading: authLoading } = useAuth()
   const { rows, subtotal, clear, setOpen } = useCart()
   const cfg = useShopConfig()
+  const cur = useCurrency()
   const navigate = useNavigate()
   const [addr, setAddr] = useState<Address>(EMPTY_ADDRESS)
   const [touched, setTouched] = useState<Partial<Record<keyof Address, boolean>>>({})
@@ -135,15 +137,15 @@ export default function Checkout() {
                   <span className="absolute -top-2 -right-2 grid size-5 place-items-center rounded-full bg-olive text-[10px] font-semibold text-white">{r.quantity}</span>
                 </span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{r.product.title}</span><span className="text-xs text-muted">{[r.color, r.size].filter(Boolean).join(' · ')}</span></span>
-                <span className="text-sm font-semibold">{formatMoney(r.price * r.quantity)}</span>
+                <span className="text-sm font-semibold">{formatUsd(r.price * r.quantity)}</span>
               </li>
             )
           })}
         </ul>
         <dl className="space-y-2 border-t border-line pt-4 text-sm">
-          <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatMoney(subtotal)}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted">Delivery ({method})</dt><dd>{shipping === 0 ? <span className="font-semibold text-leaf">Free</span> : formatMoney(shipping)}</dd></div>
-          <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-olive"><dt>Total</dt><dd>{formatMoney(total)} <span className="text-xs font-normal text-muted">USD</span></dd></div>
+          <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatUsd(subtotal)}</dd></div>
+          <div className="flex justify-between"><dt className="text-muted">Delivery ({method})</dt><dd>{shipping === 0 ? <span className="font-semibold text-leaf">Free</span> : formatUsd(shipping)}</dd></div>
+          <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-olive"><dt>Total</dt><dd className="text-right">{formatUsd(total)} <span className="text-xs font-normal text-muted">USD</span>{cur === 'GBP' && <span className="block text-xs font-normal text-muted">about {formatMoney(total)}</span>}</dd></div>
         </dl>
         {method === 'standard' && <div className="mt-4 rounded-lg bg-cream-2 p-3"><FreeShippingBar subtotal={subtotal} /></div>}
       </div>
@@ -213,7 +215,7 @@ export default function Checkout() {
                       <label key={m} className={`relative flex cursor-pointer gap-3 rounded-xl border-2 p-4 transition ${method === m ? 'border-orange bg-orange-soft/40' : 'border-line bg-paper hover:border-sand'}`}>
                         <input type="radio" name="method" value={m} checked={method === m} onChange={() => setMethod(m)} className="mt-1 size-4 accent-orange" />
                         <span className="flex-1">
-                          <span className="flex justify-between font-semibold text-olive"><span>{m === 'standard' ? 'Standard' : 'Express'}</span><span>{cost === 0 ? 'Free' : formatMoney(cost)}</span></span>
+                          <span className="flex justify-between font-semibold text-olive"><span>{m === 'standard' ? 'Standard' : 'Express'}</span><span>{cost === 0 ? 'Free' : formatUsd(cost)}</span></span>
                           <span className="mt-0.5 block text-[13px] text-muted"><Truck className="mr-1 inline size-3.5" aria-hidden />Arrives {deliveryWindow(m)}</span>
                         </span>
                       </label>
@@ -241,7 +243,7 @@ export default function Checkout() {
               {error && <Alert>{error}</Alert>}
               <button className="btn-primary w-full text-sm" disabled={busy || !cfg}>
                 <Lock className="size-4" aria-hidden />
-                {busy ? 'Placing your order…' : cfg?.checkout_mode === 'live' ? `Continue to secure payment · ${formatMoney(total)}` : `Place test order · ${formatMoney(total)}`}
+                {busy ? 'Placing your order…' : cfg?.checkout_mode === 'live' ? `Continue to secure payment · ${formatUsd(total)}` : `Place test order · ${formatUsd(total)}`}
               </button>
               <p className="text-center text-xs text-muted">By placing your order you agree to our <Link to="/terms" className="underline">Terms</Link> and <Link to="/privacy-policy" className="underline">Privacy Policy</Link>.</p>
             </form>
@@ -297,9 +299,9 @@ export function CheckoutSuccess() {
                 <div className="space-y-4">
                   <div><p className="label-caps mb-1">Shipping to</p><AddressBlock value={order.shipping_address} /></div>
                   <dl className="space-y-1 border-t border-line pt-3 text-sm">
-                    <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatMoney(order.subtotal)}</dd></div>
-                    <div className="flex justify-between"><dt className="text-muted">Delivery</dt><dd>{Number(order.shipping_amount) ? formatMoney(order.shipping_amount) : 'Free'}</dd></div>
-                    <div className="flex justify-between font-semibold text-olive"><dt>Total</dt><dd>{formatMoney(order.total_amount)}</dd></div>
+                    <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatUsd(order.subtotal)}</dd></div>
+                    <div className="flex justify-between"><dt className="text-muted">Delivery</dt><dd>{Number(order.shipping_amount) ? formatUsd(order.shipping_amount) : 'Free'}</dd></div>
+                    <div className="flex justify-between font-semibold text-olive"><dt>Total</dt><dd>{formatUsd(order.total_amount)}</dd></div>
                   </dl>
                 </div>
               </div>

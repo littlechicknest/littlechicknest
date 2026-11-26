@@ -1,3 +1,4 @@
+import { setRates, usdRate } from './currency'
 import { useEffect, useState } from 'react'
 import { asPrices, asVariants, DEFAULT_CONFIG, safeUrl, type Product, type ShopConfig } from './shop'
 import { supabase } from './supabase'
@@ -30,6 +31,19 @@ export function useProducts() {
   }, [])
 
   return { products, error, loading: !products && !error }
+}
+
+let ratesLoad: Promise<boolean> | null = null
+/** Loads the currency rates once per page load; true once GBP prices can be shown. */
+export function useRates() {
+  const [ok, setOk] = useState(() => usdRate('GBP') > 0)
+  useEffect(() => {
+    let active = true
+    ratesLoad ??= Promise.resolve(supabase.rpc('shop_rates')).then(({ data }) => { setRates(data); return usdRate('GBP') > 0 }, () => usdRate('GBP') > 0)
+    ratesLoad.then((v) => active && setOk(v))
+    return () => { active = false }
+  }, [])
+  return ok
 }
 
 const CONFIG_KEY = 'lcn-config-v1'

@@ -7,7 +7,7 @@ import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
 import type { Json, Tables } from '../lib/database.types'
-import { asAddress, asItems, COUNTRIES, EMPTY_ADDRESS, formatDate, formatMoney, imgSrc, orderNumber, type Address } from '../lib/shop'
+import { asAddress, asItems, COUNTRIES, EMPTY_ADDRESS, formatDate, formatUsd, imgSrc, orderNumber, type Address } from '../lib/shop'
 import { functionError, supabase } from '../lib/supabase'
 
 const TABS = [
@@ -96,7 +96,7 @@ export function Account() {
           ) : (
             <Link to={`/orders/${latest.id}`} className="block rounded-xl border border-line p-4 transition hover:border-sand hover:bg-cream/50">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <div><p className="font-semibold text-olive">{orderNumber(latest.id)}</p><p className="text-xs text-muted">{formatDate(latest.created_at)} · {formatMoney(latest.total_amount)}</p></div>
+                <div><p className="font-semibold text-olive">{orderNumber(latest.id)}</p><p className="text-xs text-muted">{formatDate(latest.created_at)} · {formatUsd(latest.total_amount)}</p></div>
                 <div className="flex gap-2">{latest.is_test && <TestBadge />}<StatusBadge status={latest.status} /></div>
               </div>
               <OrderProgress status={latest.status} compact />

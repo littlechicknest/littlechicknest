@@ -6,7 +6,7 @@ import { AddressBlock, ItemRow, OrderProgress, StatusBadge, TestBadge } from '..
 import { Alert, Empty, Spinner, toast, useTitle } from '../components/ui'
 import { useCart } from '../context/cart'
 import type { Tables } from '../lib/database.types'
-import { asItems, deliveryWindow, formatDate, formatMoney, imgSrc, orderNumber, STATUS_HINT } from '../lib/shop'
+import { asItems, deliveryWindow, formatDate, formatUsd, imgSrc, orderNumber, STATUS_HINT } from '../lib/shop'
 import { supabase } from '../lib/supabase'
 import { useProducts } from '../lib/useProducts'
 
@@ -71,7 +71,7 @@ export function Orders() {
                       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold text-olive">{orderNumber(o.id)}</p>
-                          <p className="text-[13px] text-muted">{formatDate(o.created_at)} · {items.reduce((n, i) => n + i.quantity, 0)} item{items.length === 1 && items[0]?.quantity === 1 ? '' : 's'} · {formatMoney(o.total_amount)}</p>
+                          <p className="text-[13px] text-muted">{formatDate(o.created_at)} · {items.reduce((n, i) => n + i.quantity, 0)} item{items.length === 1 && items[0]?.quantity === 1 ? '' : 's'} · {formatUsd(o.total_amount)}</p>
                         </div>
                         <div className="flex items-center gap-2">{o.is_test && <TestBadge />}<StatusBadge status={o.status} /><ChevronRight className="size-4 text-muted" aria-hidden /></div>
                       </div>
@@ -161,9 +161,9 @@ export function OrderDetail() {
           <div className="card p-5">
             <h2 className="mb-3 text-lg">Summary</h2>
             <dl className="space-y-2 text-sm">
-              <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatMoney(order.subtotal)}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted">Delivery ({order.shipping_method})</dt><dd>{Number(order.shipping_amount) ? formatMoney(order.shipping_amount) : 'Free'}</dd></div>
-              <div className="flex justify-between border-t border-line pt-2 text-base font-semibold text-olive"><dt>Total</dt><dd>{formatMoney(order.total_amount)}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatUsd(order.subtotal)}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted">Delivery ({order.shipping_method})</dt><dd>{Number(order.shipping_amount) ? formatUsd(order.shipping_amount) : 'Free'}</dd></div>
+              <div className="flex justify-between border-t border-line pt-2 text-base font-semibold text-olive"><dt>Total</dt><dd>{formatUsd(order.total_amount)}</dd></div>
             </dl>
           </div>
           <div className="card p-5"><h2 className="mb-3 text-lg">Shipping to</h2><AddressBlock value={order.shipping_address} /></div>

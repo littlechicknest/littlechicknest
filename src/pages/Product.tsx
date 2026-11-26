@@ -6,6 +6,7 @@ import { Accordion, Alert, Breadcrumbs, Field, Modal, QtyStepper, Spinner, Stars
 import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
+import { useCurrency } from '../lib/currency'
 import { categoryLabel, deliveryWindow, formatDate, formatMoney, priceLabel, priceOf, productImages, type Product as P } from '../lib/shop'
 import { supabase } from '../lib/supabase'
 import { useProducts, useShopConfig } from '../lib/useProducts'
@@ -138,6 +139,7 @@ function ProductView({ product }: { product: P }) {
   const { add } = useCart()
   const { has, toggle } = useWishlist()
   const cfg = useShopConfig()
+  useCurrency()
   const [params] = useSearchParams()
   const [color, setColor] = useState((product.variants.find((v) => v.color === params.get('color')) ?? product.variants[0])?.color ?? null)
   const variant = product.variants.find((v) => v.color === color)
