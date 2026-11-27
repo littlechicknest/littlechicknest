@@ -203,7 +203,8 @@ function ProductView({ product }: { product: P }) {
           </div>
           {cfg && cfg.free_shipping_over > 0 && <p className="mt-1 text-[13px] text-muted">Free standard delivery on orders over {formatMoney(cfg.free_shipping_over)}</p>}
 
-          {product.variants.length > 0 && (
+          {/* a product sold in sizes only has one "Standard" colour: nothing to choose */}
+          {product.variants.length > 0 && !(product.variants.length === 1 && product.variants[0].color === 'Standard') && (
             <fieldset className="mt-7">
               <legend className="mb-3 text-sm text-ink">Colour: <span className="font-semibold text-olive">{color}</span></legend>
               <div className="flex flex-wrap gap-2.5">
