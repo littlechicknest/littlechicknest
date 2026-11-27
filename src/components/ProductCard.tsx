@@ -3,25 +3,27 @@ import { Link } from 'react-router'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
 import { useCurrency } from '../lib/currency'
-import { priceLabel, productImages, type Product } from '../lib/shop'
+import { priceLabel, productImages, type Look, type Product } from '../lib/shop'
 import { Img, Stars } from './ui'
 
 const NEW_DAYS = 21
 const LOADED_AT = Date.now()
 
-/** `color` shows that colour's photos and opens the product in it (used by the filters and search). */
-export function ProductCard({ product, priority = false, color }: { product: Product; priority?: boolean; color?: string }) {
+/** `color` shows that colour's photos and opens the product in it (used by the filters and search).
+ *  `look` shows a Unisex product on a man or a woman (the Men / Women pages). */
+export function ProductCard({ product, priority = false, color, look }: { product: Product; priority?: boolean; color?: string; look?: Look }) {
   const { has, toggle } = useWishlist()
   const { add } = useCart()
   useCurrency()
-  const imgs = productImages(product, color)
+  const imgs = productImages(product, color, null, look)
   const shown = product.variants.find((x) => x.color === color)
   const saved = has(product.id)
   const v = product.variants
   // one colour + no sizes = nothing to choose, so it can go straight in the basket
   const quick = v.length <= 1 && !(v[0]?.sizes.length)
   const isNew = LOADED_AT - new Date(product.created_at).getTime() < NEW_DAYS * 864e5
-  const to = `/product/${product.id}${color ? `?color=${encodeURIComponent(color)}` : ''}`
+  const query = new URLSearchParams({ ...(color && { color }), ...(look && product.category === 'Unisex' && { look }) }).toString()
+  const to = `/product/${product.id}${query ? `?${query}` : ''}`
 
   return (
     <article className="group relative flex h-full flex-col">

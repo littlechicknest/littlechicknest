@@ -1,6 +1,6 @@
 import { setRates, usdRate } from './currency'
 import { useEffect, useState } from 'react'
-import { asPrices, asVariants, DEFAULT_CONFIG, safeUrl, type Product, type ShopConfig } from './shop'
+import { asModels, asPrices, asVariants, DEFAULT_CONFIG, safeUrl, type Product, type ShopConfig } from './shop'
 import { supabase } from './supabase'
 
 // shortcut: loads the whole active catalog once per page load; move to paginated RPC past ~500 products
@@ -12,7 +12,7 @@ function load(): Promise<Product[]> {
       cache = null
       throw error
     }
-    return (data ?? []).map((p) => ({ ...p, price: Number(p.price), prices: asPrices(p.prices), variants: asVariants(p.variants), size_guide: p.size_guide as unknown as string[][][] }))
+    return (data ?? []).map((p) => ({ ...p, price: Number(p.price), prices: asPrices(p.prices), variants: asVariants(p.variants), size_guide: p.size_guide as unknown as string[][][], models: asModels(p.models) }))
   })
   return cache
 }

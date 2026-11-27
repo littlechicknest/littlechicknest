@@ -6,7 +6,7 @@ export type Category = (typeof CATEGORIES)[number]
 /** "Men's", "Women's", "Kids'", "Accessories" */
 export const categoryLabel = (c: string) => (c === 'Accessories' || c === 'Unisex' ? c : c.endsWith('s') ? `${c}'` : `${c}'s`)
 
-/** Unisex products are listed under both Men and Women. */
+/** Unisex products are listed under both Men and Women (see `Look`). */
 export const inCategory = (p: { category: string }, c: string) =>
   p.category === c || (p.category === 'Unisex' && (c === 'Men' || c === 'Women'))
 
@@ -17,8 +17,17 @@ export const CATEGORY_INFO: Record<Category, { blurb: string }> = {
   Accessories: { blurb: 'Caps, mugs, scarves and gift boxes' },
 }
 
-/** `option` names what `sizes` holds when it isn't sizes (e.g. a design choice); `by_option` holds the photos of each choice. */
-export type Variant = { color: string; hex?: string; option?: string; sizes: string[]; images: string[]; by_option?: Record<string, string[]> }
+/** Which pictures of a Unisex product to show: worn by a man, or by a woman. */
+export type Look = 'men' | 'women'
+export const LOOKS: Record<Look, string> = { men: 'Men', women: 'Women' }
+/** The look a shop category asks for: the Men page shows Unisex products on men. */
+export const lookOf = (category: string | null | undefined): Look | undefined =>
+  category === 'Men' ? 'men' : category === 'Women' ? 'women' : undefined
+export const asLook = (v: string | null | undefined): Look | undefined => (v === 'men' || v === 'women' ? v : undefined)
+
+/** `option` names what `sizes` holds when it isn't sizes (e.g. a design choice); `by_option` holds the photos of each choice.
+ *  `men` / `women`: the colour's photos with a man / a woman in them (and none of Gelato's plain mockup); only on Unisex products that have them. */
+export type Variant = { color: string; hex?: string; option?: string; sizes: string[]; images: string[]; by_option?: Record<string, string[]>; men?: string[]; women?: string[] }
 
 export type Product = {
   id: string
@@ -35,6 +44,8 @@ export type Product = {
   created_at: string
   rating_avg: number | null
   rating_count: number
+  /** colour -> Gelato 3D preview link ('' = product without colours) */
+  models: Record<string, string>
 }
 
 export type OrderItem = {
@@ -121,6 +132,8 @@ export const asVariants = (v: Json): Variant[] =>
           option: typeof o.option === 'string' ? o.option : undefined,
           sizes: strings(o.sizes),
           images: strings(o.images),
+          ...(Array.isArray(o.men) && { men: strings(o.men) }),
+          ...(Array.isArray(o.women) && { women: strings(o.women) }),
           ...(o.by_option && typeof o.by_option === 'object' && !Array.isArray(o.by_option)
             && { by_option: Object.fromEntries(Object.entries(o.by_option).map(([k, x]) => [k, strings(x)])) }),
         }]
@@ -143,9 +156,16 @@ export const sizeText = (s: string) => (/^[\w-]{1,7}$/.test(s) ? `Size ${s}` : s
 
 export const asItems = (v: Json): OrderItem[] => (Array.isArray(v) ? (v as unknown as OrderItem[]) : [])
 
-/** Photos of one colour (and design option); falls back to the colour, then to the first colour that has photos. */
-export const productImages = (p: Pick<Product, 'images' | 'variants'>, color?: string | null, size?: string | null) => {
+/** True when a Unisex product has pictures of men or women to choose between. */
+export const hasLooks = (p: Pick<Product, 'category' | 'variants'>) =>
+  p.category === 'Unisex' && p.variants.some((v) => v.men?.length || v.women?.length)
+
+/** Photos of one colour (and design option); falls back to the colour, then to the first colour that has photos.
+ *  With a `look`, a Unisex product shows only the photos of a man or of a woman (when that colour has them). */
+export const productImages = (p: Pick<Product, 'images' | 'variants'> & { category?: string }, color?: string | null, size?: string | null, look?: Look) => {
   const v = p.variants.find((x) => x.color === color) ?? p.variants[0]
+  const worn = look && p.category === 'Unisex' ? v?.[look] : undefined
+  if (worn?.length) return [...new Set(worn)].map(imgSrc).filter((u): u is string => !!u)
   const own = v?.by_option?.[size ?? ''] ?? v?.images ?? []
   // a colour without photos borrows another colour's
   const borrowed = own.length || p.images.length ? [] : p.variants.find((x) => x.images.length)?.images ?? []
@@ -205,6 +225,18 @@ export const orderNumber = (id: string) => `LCN-${id.slice(0, 8).toUpperCase()}`
 
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+
+/** The colour's 3D preview link, only if it is Gelato's viewer. */
+export const modelLink = (p: Pick<Product, 'models'>, color?: string | null) => {
+  const u = p.models[color ?? ''] ?? p.models['']
+  try {
+    const url = new URL(u ?? '')
+    return url.protocol === 'https:' && /(^|\.)gelato\.tech$/i.test(url.hostname) ? url.toString() : null
+  } catch { return null }
+}
+
+export const asModels = (v: Json): Record<string, string> =>
+  v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter((e): e is [string, string] => typeof e[1] === 'string')) : {}
 
 /** Only allow http(s) URLs into src/href attributes. */
 export const safeUrl = (u: string | null | undefined) => (u && /^https?:\/\//i.test(u) ? u : null)

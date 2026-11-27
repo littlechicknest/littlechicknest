@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addBusinessDays, asVariants, categoryLabel, colorFamily, DEFAULT_CONFIG, imgSrc, inCategory, matchesSearch, matchVariant, priceLabel, priceOf, productImages, safeUrl, shippingCost, sizeText, wantedColors } from './shop'
+import { addBusinessDays, asVariants, categoryLabel, colorFamily, DEFAULT_CONFIG, imgSrc, inCategory, matchesSearch, matchVariant, modelLink, priceLabel, priceOf, productImages, safeUrl, shippingCost, sizeText, wantedColors } from './shop'
 
 describe('colours', () => {
   const p = { title: 'Hoodie', description: '', category: 'Men', images: [], variants: [
@@ -73,5 +73,24 @@ describe('storefront helpers', () => {
   it('skips weekends when adding business days', () => {
     const fri = new Date('2026-11-20T12:00:00')
     expect(addBusinessDays(fri, 1).getDay()).toBe(1)
+  })
+})
+
+describe('Unisex pictures on men / women', () => {
+  const v = { color: 'Black', sizes: ['S'], images: ['https://x/gelato.webp', 'https://x/man.webp', 'https://x/woman.webp', 'https://x/flat.webp'], men: ['https://x/man.webp', 'https://x/flat.webp'], women: ['https://x/woman.webp', 'https://x/flat.webp'] }
+  const p = { category: 'Unisex', images: [], variants: [v, { color: 'Red', sizes: ['S'], images: ['https://x/red.webp'] }] }
+  it('shows only the chosen look, without Gelato’s picture', () => {
+    expect(productImages(p, 'Black')).toEqual(v.images)
+    expect(productImages(p, 'Black', null, 'men')).toEqual(v.men)
+    expect(productImages(p, 'Black', null, 'women')).toEqual(v.women)
+  })
+  it('falls back to every picture when the colour has none of people, or the product is not Unisex', () => {
+    expect(productImages(p, 'Red', null, 'men')).toEqual(['https://x/red.webp'])
+    expect(productImages({ ...p, category: 'Men' }, 'Black', null, 'women')).toEqual(v.images)
+  })
+  it('only shows Gelato 3D links', () => {
+    expect(modelLink({ models: { Black: 'https://preflight.internal.ie.live.gelato.tech/product/preview?a=1' } }, 'Black')).toContain('gelato.tech')
+    expect(modelLink({ models: { Black: 'https://evil.example/x' } }, 'Black')).toBeNull()
+    expect(modelLink({ models: { '': 'https://preflight.live.gelato.tech/p' } }, null)).toContain('gelato.tech')
   })
 })

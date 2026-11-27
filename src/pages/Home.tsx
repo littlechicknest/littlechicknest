@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import { ProductCarousel } from '../components/Carousel'
 import { MAIN_SITE, TrustBadges } from '../components/Layout'
 import { Alert, useTitle } from '../components/ui'
-import { CATEGORIES, CATEGORY_INFO, categoryLabel, inCategory, type Category, type Product } from '../lib/shop'
+import { CATEGORIES, CATEGORY_INFO, categoryLabel, inCategory, lookOf, type Category, type Product } from '../lib/shop'
 import { SiteImg } from '../lib/siteImages'
 import { useProducts } from '../lib/useProducts'
 
@@ -187,7 +187,7 @@ export default function Home() {
   const counts = Object.fromEntries(Object.entries(byCat).map(([k, v]) => [k, v.length]))
 
   const carousel = (s: (typeof SECTIONS)[number]) => products && !byCat[s.cat]?.length ? null : (
-    <ProductCarousel key={s.cat} id={`c-${s.cat}`} title={s.title} subtitle={s.subtitle}
+    <ProductCarousel key={s.cat} id={`c-${s.cat}`} title={s.title} subtitle={s.subtitle} look={lookOf(s.cat)}
       products={products ? (byCat[s.cat] ?? []).slice(0, 6) : null}
       viewMore={{ to: `/shop?category=${s.cat}`, label: `All ${categoryLabel(s.cat).toLowerCase()}`, image: categorySlot(s.cat) }} />
   )

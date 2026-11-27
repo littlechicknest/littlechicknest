@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Heart, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Truck } from 'lucide-react'
+import { Box, ChevronLeft, ChevronRight, Heart, Images, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Truck } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { ProductCarousel } from '../components/Carousel'
@@ -7,7 +7,7 @@ import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
 import { useCurrency } from '../lib/currency'
-import { categoryLabel, deliveryWindow, formatDate, formatMoney, priceLabel, priceOf, productImages, type Product as P } from '../lib/shop'
+import { asLook, categoryLabel, deliveryWindow, formatDate, formatMoney, hasLooks, LOOKS, modelLink, priceLabel, priceOf, productImages, type Look, type Product as P } from '../lib/shop'
 import { supabase } from '../lib/supabase'
 import { useProducts, useShopConfig } from '../lib/useProducts'
 import NotFound from './NotFound'
@@ -17,6 +17,7 @@ type Review = { id: string; author_name: string; rating: number; body: string; c
 export default function Product() {
   const { id } = useParams()
   const { products, loading, error } = useProducts()
+  const [params] = useSearchParams()
   const product = products?.find((p) => p.id === id)
   useTitle(product?.title ?? 'Product')
 
@@ -30,7 +31,7 @@ export default function Product() {
       <ProductView key={product.id} product={product} />
       {related.length > 0 && (
         <div className="container-x">
-          <ProductCarousel id="related" title="You may also like" subtitle={`More from ${categoryLabel(product.category).toLowerCase()}`} products={related} autoplay={false}
+          <ProductCarousel id="related" title="You may also like" subtitle={`More from ${categoryLabel(product.category).toLowerCase()}`} products={related} autoplay={false} look={asLook(params.get('look'))}
             viewMore={{ to: `/shop?category=${product.category}`, label: `All ${categoryLabel(product.category).toLowerCase()}` }} />
         </div>
       )}
@@ -52,7 +53,8 @@ function Description({ text }: { text: string }) {
   return <>{blocks}</>
 }
 
-function Gallery({ images, alt }: { images: string[]; alt: string }) {
+/** Photos, plus Gelato's 3D preview of the colour when there is one: `in3d` lives in the page so it stays on while the colour changes. */
+function Gallery({ images, alt, model, in3d, set3d }: { images: string[]; alt: string; model: string | null; in3d: boolean; set3d: (on: boolean) => void }) {
   const [active, setActive] = useState(0)
   const [zoom, setZoom] = useState<string | null>(null)
   const track = useRef<HTMLDivElement>(null)
@@ -65,11 +67,14 @@ function Gallery({ images, alt }: { images: string[]; alt: string }) {
     if (el) el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' })
   }
 
-  if (!images.length) return <div className="grid aspect-square place-items-center rounded-[var(--radius-card)] bg-cream-2 text-muted">Image coming soon</div>
+  const show3d = !!model && (in3d || !images.length)
+  if (!images.length && !model) return <div className="grid aspect-square place-items-center rounded-[var(--radius-card)] bg-cream-2 text-muted">Image coming soon</div>
   return (
     <div className="lg:sticky lg:top-24">
       <div className="group relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-paper">
-        <div ref={track} onScroll={(e) => setActive(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
+        {show3d ? (
+          <iframe key={model} src={model} title={`${alt}, 3D preview`} allow="fullscreen; xr-spatial-tracking" className="block aspect-square w-full bg-white" />
+        ) : <div ref={track} onScroll={(e) => setActive(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
           className="no-scrollbar flex aspect-square snap-x snap-mandatory overflow-x-auto">
           {images.map((src, n) => (
             <div key={src} className="relative size-full shrink-0 snap-center overflow-hidden"
@@ -80,8 +85,15 @@ function Gallery({ images, alt }: { images: string[]; alt: string }) {
                 className="size-full cursor-zoom-in object-cover transition-transform duration-200 ease-out" />
             </div>
           ))}
-        </div>
-        {images.length > 1 && (
+        </div>}
+        {model && images.length > 0 && (
+          <button type="button" onClick={() => set3d(!show3d)} aria-pressed={show3d}
+            className="absolute right-3 bottom-3 flex items-center gap-1.5 rounded-full bg-olive px-3.5 py-2 text-[13px] font-semibold text-white shadow-md transition hover:bg-olive-2">
+            {show3d ? <><Images className="size-4" aria-hidden /> Photos</> : <><Box className="size-4" aria-hidden /> 3D view</>}
+          </button>
+        )}
+        {show3d && <p className="pointer-events-none absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[12px] font-medium text-olive shadow-sm">Drag to turn it around</p>}
+        {!show3d && images.length > 1 && (
           <>
             <button type="button" onClick={() => go(i - 1)} aria-label="Previous image" className="absolute top-1/2 left-3 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-olive opacity-0 shadow transition group-hover:opacity-100 focus:opacity-100"><ChevronLeft className="size-5" aria-hidden /></button>
             <button type="button" onClick={() => go(i + 1)} aria-label="Next image" className="absolute top-1/2 right-3 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-olive opacity-0 shadow transition group-hover:opacity-100 focus:opacity-100"><ChevronRight className="size-5" aria-hidden /></button>
@@ -91,14 +103,20 @@ function Gallery({ images, alt }: { images: string[]; alt: string }) {
           </>
         )}
       </div>
-      {images.length > 1 && (
-        <div className="mt-3 hidden gap-3 sm:flex">
+      {(images.length > 1 || (model && images.length > 0)) && (
+        <div className="mt-3 hidden flex-wrap gap-3 sm:flex">
           {images.map((g, n) => (
-            <button key={g} type="button" onClick={() => go(n)} aria-label={`Show image ${n + 1}`} aria-current={n === i}
-              className={`size-20 overflow-hidden rounded-lg border-2 bg-paper transition ${n === i ? 'border-orange' : 'border-transparent opacity-70 hover:opacity-100'}`}>
+            <button key={g} type="button" onClick={() => { set3d(false); requestAnimationFrame(() => go(n)) }} aria-label={`Show image ${n + 1}`} aria-current={!show3d && n === i}
+              className={`size-20 overflow-hidden rounded-lg border-2 bg-paper transition ${!show3d && n === i ? 'border-orange' : 'border-transparent opacity-70 hover:opacity-100'}`}>
               <img src={g} alt="" loading="lazy" className="size-full object-cover" />
             </button>
           ))}
+          {model && (
+            <button type="button" onClick={() => set3d(true)} aria-label="Show 3D preview" aria-current={show3d}
+              className={`grid size-20 place-items-center rounded-lg border-2 bg-cream-2 text-olive transition ${show3d ? 'border-orange' : 'border-transparent hover:border-sand'}`}>
+              <span className="flex flex-col items-center gap-0.5 text-[12px] font-bold"><Box className="size-6 text-orange" aria-hidden />3D</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -150,7 +168,11 @@ function ProductView({ product }: { product: P }) {
   const [guide, setGuide] = useState(false)
   const [showBar, setShowBar] = useState(false)
   const buyRef = useRef<HTMLDivElement>(null)
-  const images = useMemo(() => productImages(product, color, size), [product, color, size])
+  const looks = hasLooks(product)
+  const [look, setLook] = useState<Look | undefined>(() => (looks ? asLook(params.get('look')) : undefined))
+  const images = useMemo(() => productImages(product, color, size, look), [product, color, size, look])
+  const model = modelLink(product, color)
+  const [in3d, set3d] = useState(false)
   const saved = has(product.id)
   const noPhotos = !!variant && !variant.images.length && !product.images.length && images.length > 0
   const option = variant?.option ?? 'Size'
@@ -188,7 +210,16 @@ function ProductView({ product }: { product: P }) {
       <Breadcrumbs items={[[categoryLabel(product.category), `/shop?category=${product.category}`], [product.title]]} />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14">
         <div>
-          <Gallery key={images[0]} images={images} alt={`${product.title}${color && !noPhotos ? ` in ${color}` : ''}`} />
+          {looks && (
+            <div role="group" aria-label="See it worn by" className="mb-3 flex items-center gap-2 text-[13px]">
+              <span className="text-muted">See it on</span>
+              {([[undefined, 'Everyone'], ...Object.entries(LOOKS)] as [Look | undefined, string][]).map(([k, label]) => (
+                <button key={label} type="button" onClick={() => { setLook(k); set3d(false) }} aria-pressed={look === k}
+                  className={`rounded-full border px-3.5 py-1.5 font-semibold transition ${look === k ? 'border-olive bg-olive text-white' : 'border-sand bg-paper text-olive hover:border-olive'}`}>{label}</button>
+              ))}
+            </div>
+          )}
+          <Gallery key={`${look}${images[0]}`} images={images} alt={`${product.title}${color && !noPhotos ? ` in ${color}` : ''}`} model={model} in3d={in3d} set3d={set3d} />
           {noPhotos && <p className="mt-3 text-center text-[13px] text-muted">Photo shows another colour. Yours will be made in <strong className="text-olive">{color}</strong>.</p>}
         </div>
 

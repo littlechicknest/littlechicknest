@@ -1,7 +1,7 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import type { Product } from '../lib/shop'
+import type { Look, Product } from '../lib/shop'
 import { SiteImg, type Slot } from '../lib/siteImages'
 import { ProductCard, ProductCardSkeleton } from './ProductCard'
 
@@ -15,10 +15,12 @@ type Props = {
   products: Product[] | null
   viewMore?: { to: string; label: string; image?: Slot }
   autoplay?: boolean
+  /** shows Unisex products on a man or a woman */
+  look?: Look
 }
 
 /** Swipeable product row that gently rotates on its own until someone touches it. */
-export function ProductCarousel({ id, title, subtitle, products, viewMore, autoplay = true }: Props) {
+export function ProductCarousel({ id, title, subtitle, products, viewMore, autoplay = true, look }: Props) {
   const track = useRef<HTMLUListElement>(null)
   const [page, setPage] = useState(0)
   const [pages, setPages] = useState(1)
@@ -99,7 +101,7 @@ export function ProductCarousel({ id, title, subtitle, products, viewMore, autop
         {!products ? Array.from({ length: 4 }, (_, i) => <li key={i} className={ITEM}><ProductCardSkeleton /></li>)
           : products.map((p, i) => (
             <li key={p.id} className={ITEM} aria-roledescription="slide" aria-label={`${i + 1} of ${count}`}>
-              <ProductCard product={p} />
+              <ProductCard product={p} look={look} />
             </li>
           ))}
         {products && viewMore && (

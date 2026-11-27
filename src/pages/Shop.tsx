@@ -3,7 +3,7 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard'
 import { Alert, Empty, Modal, PageHeader, useTitle } from '../components/ui'
-import { CATEGORIES, CATEGORY_INFO, categoryLabel, colorFamily, inCategory as isIn, matchesSearch, matchVariant, wantedColors, type Product } from '../lib/shop'
+import { CATEGORY_INFO, categoryLabel, colorFamily, inCategory as isIn, lookOf, matchesSearch, matchVariant, wantedColors, type Product } from '../lib/shop'
 import { useProducts } from '../lib/useProducts'
 
 const SORTS = { featured: 'Featured', new: 'Newest', 'price-asc': 'Price: low to high', 'price-desc': 'Price: high to low', az: 'Name: A to Z' } as const
@@ -13,10 +13,13 @@ type PriceKey = keyof typeof PRICES
 const SIZE_ORDER = ['NEWBORN', '6M', '12M', '18M', '24M', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '3-4Y', '3-5Y', '5-6Y', '6-8Y', '7-8Y', '9-10Y', '9-12Y', '11-12Y']
 
 const list = (v: string | null) => (v ? v.split(',').filter(Boolean) : [])
+/** The shop's tabs: Unisex products also show under Men (on men) and Women (on women). */
+const TABS = ['Men', 'Women', 'Unisex', 'Kids', 'Accessories'] as const
 
 export default function Shop() {
   const [params, setParams] = useSearchParams()
-  const category = CATEGORIES.find((c) => c === params.get('category')) ?? null
+  const category = TABS.find((c) => c === params.get('category')) ?? null
+  const look = lookOf(category)
   const sort: Sort = (params.get('sort') ?? '') in SORTS ? (params.get('sort') as Sort) : 'featured'
   const q = params.get('q') ?? ''
   const colors = list(params.get('color'))
@@ -75,7 +78,7 @@ export default function Shop() {
 
   const counts = useMemo(() => {
     const m: Record<string, number> = {}
-    for (const c of CATEGORIES) m[c] = (products ?? []).filter((p) => isIn(p, c)).length
+    for (const c of TABS) m[c] = (products ?? []).filter((p) => isIn(p, c)).length
     return m
   }, [products])
 
@@ -128,12 +131,12 @@ export default function Shop() {
     <>
       <PageHeader eyebrow={category ? 'Shop' : 'The collection'} title={category ? categoryLabel(category) : q ? `Results for “${q}”` : 'Shop all'}
         crumbs={category ? [['Shop', '/shop'], [categoryLabel(category)]] : [['Shop']]}>
-        {category ? CATEGORY_INFO[category].blurb + '. ' : ''}Printed and embroidered to order, just for you.
+        {category === 'Unisex' ? 'Hoodies, sweatshirts and tees for everyone. ' : category ? CATEGORY_INFO[category].blurb + '. ' : ''}Printed and embroidered to order, just for you.
       </PageHeader>
 
       <div className="container-x">
         <div role="tablist" aria-label="Category" className="no-scrollbar -mx-1 mb-6 flex gap-2 overflow-x-auto px-1 pb-1">
-          {([[null, 'All'], ...CATEGORIES.map((c) => [c, categoryLabel(c)])] as [string | null, string][]).map(([value, label]) => (
+          {([[null, 'All'], ...TABS.filter((c) => c !== 'Unisex' || counts.Unisex || category === c).map((c) => [c, categoryLabel(c)])] as [string | null, string][]).map(([value, label]) => (
             <button key={label} type="button" role="tab" aria-selected={category === value}
               onClick={() => setParams((p) => { if (value) p.set('category', value); else p.delete('category'); p.delete('color'); p.delete('size'); return p }, { replace: true })}
               className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold tracking-wide uppercase transition ${category === value ? 'bg-orange text-white shadow-[0_6px_14px_-6px_rgb(252_91_19/0.6)]' : 'border border-sand bg-paper text-olive hover:border-orange hover:text-orange-2'}`}>
@@ -182,7 +185,7 @@ export default function Shop() {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 md:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, i) => <ProductCardSkeleton key={i} />)}</div>
               ) : shown.length ? (
                 <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 md:grid-cols-3 xl:grid-cols-4">
-                  {shown.map((p, i) => <li key={p.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}><ProductCard product={p} priority={i < 4} color={matchVariant(p, wanted)?.color} /></li>)}
+                  {shown.map((p, i) => <li key={p.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}><ProductCard product={p} priority={i < 4} color={matchVariant(p, wanted)?.color} look={look} /></li>)}
                 </ul>
               ) : (
                 <Empty title={active.length ? 'Nothing matches those filters' : 'New designs are hatching'}>

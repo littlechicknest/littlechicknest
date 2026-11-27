@@ -47,7 +47,7 @@ export type Database = {
         Args: never
         Returns: {
           category: string; created_at: string; description: string; id: string; images: string[]
-          is_featured: boolean; price: number; prices: Json; rating_avg: number | null; rating_count: number; size_guide: Json; title: string
+          is_featured: boolean; models: Json; price: number; prices: Json; rating_avg: number | null; rating_count: number; size_guide: Json; title: string
           variants: Json
         }[]
       }
