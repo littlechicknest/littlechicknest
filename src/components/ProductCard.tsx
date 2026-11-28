@@ -34,10 +34,11 @@ export function ProductCard({ product, priority = false, color: asked, look }: {
           {imgs[0] ? (
             <>
               <Img src={imgs[0]} alt="" fetchPriority={priority ? 'high' : undefined} loading={priority ? 'eager' : 'lazy'}
-                className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" />
+                className={`absolute inset-0 size-full object-cover transition-[transform,opacity] duration-700 ease-out group-hover:scale-[1.04] ${imgs[1] ? 'group-hover:opacity-0 group-hover:duration-300' : ''}`} />
+              {/* the second picture has its own background, so a see-through picture never shows the first one behind it */}
               {imgs[1] && (
                 <img src={imgs[1]} alt="" loading="lazy" decoding="async"
-                  className="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                  className="absolute inset-0 size-full bg-paper object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
               )}
             </>
           ) : <span className="grid size-full place-items-center text-sm text-muted">Image coming soon</span>}

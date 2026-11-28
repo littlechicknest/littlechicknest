@@ -25,6 +25,12 @@ export const lookOf = (category: string | null | undefined): Look | undefined =>
   category === 'Men' ? 'men' : category === 'Women' ? 'women' : undefined
 export const asLook = (v: string | null | undefined): Look | undefined => (v === 'men' || v === 'women' ? v : undefined)
 
+/** Where a product's category links to. With the Unisex category hidden (admin setting), a Unisex product points to Men's / Women's instead. */
+export const categoryLink = (category: string, showUnisex: boolean, look?: Look): { label: string; to: string } =>
+  category !== 'Unisex' || showUnisex ? { label: categoryLabel(category), to: `/shop?category=${category}` }
+    : look ? { label: categoryLabel(LOOKS[look]), to: `/shop?category=${LOOKS[look]}` }
+    : { label: "Men's & Women's", to: '/shop' }
+
 const LOOK_WORDS: Record<string, Look> = {
   men: 'men', man: 'men', mens: 'men', "men's": 'men', male: 'men', males: 'men', gents: 'men',
   women: 'women', woman: 'women', womens: 'women', "women's": 'women', female: 'women', females: 'women', ladies: 'women', lady: 'women',
@@ -106,8 +112,10 @@ export const formatMoney = (n: number | string | null | undefined) =>
 
 /** Delivery prices for a group of countries (USD); `extra` is added for each item after the first. */
 export type Zone = { name: string; countries: string[]; standard: number; express: number; extra: number }
-export type ShopConfig = { zones: Zone[]; checkout_mode: 'test' | 'live'; site_images: Record<string, string> }
-export const DEFAULT_CONFIG: ShopConfig = { zones: [], checkout_mode: 'live', site_images: {} }
+export type ShopConfig = { zones: Zone[]; checkout_mode: 'test' | 'live'; site_images: Record<string, string>; show_unisex: boolean }
+export const DEFAULT_CONFIG: ShopConfig = { zones: [], checkout_mode: 'live', site_images: {}, show_unisex: true }
+/** The Unisex category is shown unless the owner hid it (and while the settings are still loading). */
+export const showUnisex = (cfg: ShopConfig | null) => cfg?.show_unisex !== false
 
 export const asZones = (v: unknown): Zone[] =>
   Array.isArray(v) ? v.flatMap((z) => {

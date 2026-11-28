@@ -78,6 +78,7 @@ function loadConfig() {
     const cfg: ShopConfig = {
       zones: asZones(r.shipping_zones), checkout_mode: r.checkout_mode === 'live' ? 'live' : 'test',
       site_images: Object.fromEntries(Object.entries(r.site_images ?? {}).filter(([, u]) => safeUrl(u))),
+      show_unisex: r.show_unisex !== false,
     }
     try { localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)) } catch { /* storage blocked */ }
     setCfgState({ cfg, fresh: true, failed: false })

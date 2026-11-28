@@ -3,9 +3,9 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard'
 import { Alert, Empty, Modal, PageHeader, useTitle } from '../components/ui'
-import { CATEGORY_INFO, categoryLabel, colorFamily, formatMoney, inCategory as isIn, lookInSearch, lookOf, matchesSearch, matchVariant, wantedColors, type Product } from '../lib/shop'
+import { CATEGORY_INFO, categoryLabel, colorFamily, formatMoney, inCategory as isIn, lookInSearch, lookOf, matchesSearch, matchVariant, showUnisex, wantedColors, type Product } from '../lib/shop'
 import { useCurrency } from '../lib/currency'
-import { useProducts } from '../lib/useProducts'
+import { useProducts, useShopConfig } from '../lib/useProducts'
 
 const SORTS = { featured: 'Featured', new: 'Newest', 'price-asc': 'Price: low to high', 'price-desc': 'Price: high to low', az: 'Name: A to Z' } as const
 type Sort = keyof typeof SORTS
@@ -23,7 +23,9 @@ const TABS = ['Men', 'Women', 'Unisex', 'Kids', 'Accessories'] as const
 export default function Shop() {
   useCurrency() // price filter labels follow the chosen currency
   const [params, setParams] = useSearchParams()
-  const category = TABS.find((c) => c === params.get('category')) ?? null
+  // the owner can hide the Unisex category: its products still show under Men's, Women's and Shop all
+  const unisex = showUnisex(useShopConfig())
+  const category = TABS.find((c) => c === params.get('category') && (c !== 'Unisex' || unisex)) ?? null
   const sort: Sort = Object.hasOwn(SORTS, params.get('sort') ?? '') ? (params.get('sort') as Sort) : 'featured'
   const q = params.get('q') ?? ''
   const colors = list(params.get('color'))
@@ -152,7 +154,7 @@ export default function Shop() {
 
       <div className="container-x">
         <div role="tablist" aria-label="Category" className="no-scrollbar -mx-1 mb-6 flex gap-2 overflow-x-auto px-1 pb-1">
-          {([[null, 'All'], ...TABS.filter((c) => c !== 'Unisex' || counts.Unisex || category === c).map((c) => [c, categoryLabel(c)])] as [string | null, string][]).map(([value, label]) => (
+          {([[null, 'All'], ...TABS.filter((c) => c !== 'Unisex' || (unisex && (counts.Unisex || category === c))).map((c) => [c, categoryLabel(c)])] as [string | null, string][]).map(([value, label]) => (
             <button key={label} type="button" role="tab" aria-selected={category === value}
               onClick={() => setParams((p) => { if (value) p.set('category', value); else p.delete('category'); p.delete('color'); p.delete('size'); return p }, { replace: true })}
               className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold tracking-wide uppercase transition ${category === value ? 'bg-orange text-white shadow-[0_6px_14px_-6px_rgb(252_91_19/0.6)]' : 'border border-sand bg-paper text-olive hover:border-orange hover:text-orange-2'}`}>

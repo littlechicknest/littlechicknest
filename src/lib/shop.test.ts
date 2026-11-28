@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addBusinessDays, asVariants, asZones, cheapestDelivery, categoryLabel, colorFamily, DEFAULT_CONFIG, imgSrc, inCategory, lookColor, lookInSearch, matchesSearch, matchVariant, modelLink, priceLabel, priceOf, productImages, safeUrl, searchFor, shippingCost, sizeText, wantedColors } from './shop'
+import { addBusinessDays, asVariants, asZones, cheapestDelivery, categoryLabel, categoryLink, colorFamily, DEFAULT_CONFIG, imgSrc, inCategory, lookColor, lookInSearch, matchesSearch, matchVariant, modelLink, priceLabel, priceOf, productImages, safeUrl, searchFor, shippingCost, sizeText, wantedColors } from './shop'
 
 describe('colours', () => {
   const p = { title: 'Hoodie', description: '', category: 'Men', images: [], variants: [
@@ -117,5 +117,14 @@ describe('Unisex pictures on men / women', () => {
     expect(modelLink({ models: { Black: 'https://evil.example/storage/v1/object/public/product-models/a.glb' } }, 'Black')).toBeNull()
     expect(modelLink({ models: { Black: 'https://preflight.live.gelato.tech/p' } }, 'Black')).toBeNull()
     expect(modelLink({ models: {} }, 'Black')).toBeNull()
+  })
+})
+
+describe('hidden Unisex category', () => {
+  it('points Unisex products to Men / Women when hidden', () => {
+    expect(categoryLink('Unisex', true)).toEqual({ label: 'Unisex', to: '/shop?category=Unisex' })
+    expect(categoryLink('Unisex', false, 'women')).toEqual({ label: "Women's", to: '/shop?category=Women' })
+    expect(categoryLink('Unisex', false)).toEqual({ label: "Men's & Women's", to: '/shop' })
+    expect(categoryLink('Kids', false)).toEqual({ label: "Kids'", to: '/shop?category=Kids' })
   })
 })

@@ -5,7 +5,7 @@ import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
 import { CURRENCIES, setCurrency, useCurrency, type Currency } from '../lib/currency'
-import { categoryLabel, cheapestDelivery, formatMoney, lookColor, matchVariant, priceLabel, productImage, searchFor, wantedColors } from '../lib/shop'
+import { categoryLink, cheapestDelivery, formatMoney, lookColor, matchVariant, priceLabel, productImage, searchFor, showUnisex, wantedColors } from '../lib/shop'
 import { SiteImg } from '../lib/siteImages'
 import { supabase } from '../lib/supabase'
 import { useProducts, useRates, useShopConfig } from '../lib/useProducts'
@@ -123,6 +123,7 @@ function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const { products, error: catalogError } = useProducts()
   const navigate = useNavigate()
   const search = useMemo(() => searchFor(query), [query])
+  const unisex = showUnisex(useShopConfig())
   const results = useMemo(() => !query ? [] : (products ?? []).filter(search.test).slice(0, 6), [products, query, search])
 
   if (!open) return null
@@ -159,7 +160,7 @@ function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void })
                 <li key={p.id}>
                   <Link to={`/product/${p.id}${to ? `?${to}` : ''}`} onClick={onClose} className="flex items-center gap-4 rounded-lg px-2 py-2.5 hover:bg-cream">
                     <span className="size-14 shrink-0 overflow-hidden rounded-md bg-cream-2">{img && <img src={img} alt="" className="size-full object-cover" />}</span>
-                    <span className="min-w-0 flex-1"><span className="block truncate font-medium">{p.title}</span><span className="text-xs text-muted">{categoryLabel(p.category)}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate font-medium">{p.title}</span><span className="text-xs text-muted">{categoryLink(p.category, unisex, look).label}</span></span>
                     <span className="font-semibold text-olive">{priceLabel(p)}</span>
                   </Link>
                 </li>

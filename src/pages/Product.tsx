@@ -8,7 +8,7 @@ import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
 import { useCurrency } from '../lib/currency'
-import { asLook, categoryLabel, cheapestDelivery, deliveryWindow, formatDate, formatMoney, hasLooks, LOOKS, modelLink, priceLabel, priceOf, productImages, type Look, type Product as P } from '../lib/shop'
+import { asLook, categoryLink, cheapestDelivery, deliveryWindow, formatDate, formatMoney, hasLooks, LOOKS, modelLink, priceLabel, priceOf, productImages, showUnisex, type Look, type Product as P } from '../lib/shop'
 import { supabase } from '../lib/supabase'
 import { useProducts, useShopConfig } from '../lib/useProducts'
 import NotFound from './NotFound'
@@ -21,10 +21,12 @@ export default function Product() {
   const [params] = useSearchParams()
   const product = products?.find((p) => p.id === id)
   useTitle(product?.title ?? 'Product')
+  const cfg = useShopConfig()
 
   if (loading) return <Spinner />
   if (error) return <div className="container-x py-10"><Alert>Could not load this product. Please refresh.</Alert></div>
   if (!product) return <NotFound />
+  const cat = categoryLink(product.category, showUnisex(cfg), asLook(params.get('look')))
   const related = (products ?? []).filter((p) => p.category === product.category && p.id !== product.id)
     .sort((a, b) => Number(b.is_featured) - Number(a.is_featured)).slice(0, 8)
   return (
@@ -32,8 +34,8 @@ export default function Product() {
       <ProductView key={product.id} product={product} />
       {related.length > 0 && (
         <div className="container-x">
-          <ProductCarousel id="related" title="You may also like" subtitle={`More from ${categoryLabel(product.category).toLowerCase()}`} products={related} autoplay={false} look={asLook(params.get('look'))}
-            viewMore={{ to: `/shop?category=${product.category}`, label: `All ${categoryLabel(product.category).toLowerCase()}` }} />
+          <ProductCarousel id="related" title="You may also like" subtitle={`More from ${cat.label.toLowerCase()}`} products={related} autoplay={false} look={asLook(params.get('look'))}
+            viewMore={{ to: cat.to, label: `All ${cat.label.toLowerCase()}` }} />
         </div>
       )}
     </>
@@ -179,6 +181,7 @@ function ProductView({ product }: { product: P }) {
   const buyRef = useRef<HTMLDivElement>(null)
   const looks = hasLooks(product)
   const [look, setLook] = useState<Look | undefined>(() => (looks ? asLook(params.get('look')) : undefined))
+  const cat = categoryLink(product.category, showUnisex(cfg), look)
   const images = useMemo(() => productImages(product, color, size, look), [product, color, size, look])
   const model = modelLink(product, color)
   const [in3d, set3d] = useState(false)
@@ -216,7 +219,7 @@ function ProductView({ product }: { product: P }) {
 
   return (
     <div className="container-x pt-6 pb-4">
-      <Breadcrumbs items={[[categoryLabel(product.category), `/shop?category=${product.category}`], [product.title]]} />
+      <Breadcrumbs items={[[cat.label, cat.to], [product.title]]} />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14">
         <div>
           {looks && (
@@ -233,7 +236,7 @@ function ProductView({ product }: { product: P }) {
         </div>
 
         <div className="min-w-0">
-          <Link to={`/shop?category=${product.category}`} className="label-caps hover:text-orange-2">{categoryLabel(product.category)}</Link>
+          <Link to={cat.to} className="label-caps hover:text-orange-2">{cat.label}</Link>
           <h1 className="mt-2 text-[1.9rem] leading-tight sm:text-[2.3rem]">{product.title}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
             <p className="text-2xl font-semibold text-olive">{price}</p>

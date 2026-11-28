@@ -39,7 +39,7 @@ export type Database = {
       }
       shop_config: {
         Args: never
-        Returns: { checkout_mode: string; shipping_zones: Json; site_images: Record<string, string> }[]
+        Returns: { checkout_mode: string; shipping_zones: Json; site_images: Record<string, string>; show_unisex: boolean }[]
       }
       shop_rates: { Args: never; Returns: Json }
       place_test_order: { Args: { p_items: Json; p_address: Json; p_shipping_method: string }; Returns: string }
