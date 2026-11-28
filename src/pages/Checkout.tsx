@@ -325,6 +325,15 @@ export function CheckoutSuccess() {
       </div>
     </div>
   )
+  if (order.status === 'cancelled' || order.status === 'refunded') return (
+    <div className="container-x py-8">
+      <div className="card mx-auto max-w-xl p-8 text-center">
+        <h1 className="text-2xl">This order was {order.status}</h1>
+        <p className="mt-2 text-muted">Order {orderNumber(order.id)} is no longer active. You can see its details in your orders.</p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3"><Link to={`/orders/${order.id}`} className="btn-primary">View order</Link><Link to="/shop" className="btn-ghost">Continue shopping</Link></div>
+      </div>
+    </div>
+  )
   const items = asItems(order.items)
   const name = asAddress(order.shipping_address)?.name.split(' ')[0]
   return (

@@ -119,7 +119,7 @@ export function Account() {
 
 export function Addresses() {
   useTitle('Addresses')
-  const { session, profile, refreshProfile } = useAuth()
+  const { session, profile, profileFailed, refreshProfile } = useAuth()
   const saved = asAddress(profile?.default_address)
   const [editing, setEditing] = useState(!saved?.line1)
   const [a, setA] = useState<Address>(saved ?? { ...EMPTY_ADDRESS, name: profile?.full_name ?? '' })
@@ -153,7 +153,7 @@ export function Addresses() {
   return (
     <AccountShell title="Addresses">
       <p className="-mt-4 mb-6 text-muted">Your default address is filled in for you at checkout.</p>
-      {!editing && saved ? (
+      {profileFailed ? <div className="max-w-md"><Alert>We couldn’t load your saved address. Please refresh the page.</Alert></div> : !editing && saved ? (
         <div className="card max-w-md p-6">
           <span className="mb-3 inline-block rounded-full bg-orange-soft px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-orange-2 uppercase">Default</span>
           <AddressBlock value={profile?.default_address ?? null} />

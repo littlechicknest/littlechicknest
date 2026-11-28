@@ -66,6 +66,7 @@ export default function Login() {
   const google = async () => {
     setMsg(null)
     if (mode === 'signup' && !accepted) return setMsg({ tone: 'error', text: 'Please tick the box to accept the Terms & Conditions first.' })
+    try { sessionStorage.setItem('lcn-next', next) } catch { /* storage blocked: lands on the home page */ }
     const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: appUrl() } })
     if (error) setMsg({ tone: 'error', text: 'Google sign-in is not available yet. Please use email and password.' })
   }

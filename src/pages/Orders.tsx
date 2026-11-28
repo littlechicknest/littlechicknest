@@ -103,7 +103,13 @@ export function OrderDetail() {
   const { products, loading: catalogLoading, error: catalogError } = useProducts()
 
   useEffect(() => {
-    supabase.from('orders').select('*').eq('id', id!).maybeSingle().then(({ data, error }) => (error ? setLookupFailed(true) : setOrder(data as Order | null)))
+    setLookupFailed(false)
+    setOrder(undefined)
+    let active = true
+    supabase.from('orders').select('*').eq('id', id!).maybeSingle().then(({ data, error }) => {
+      if (active) { if (error) setLookupFailed(true); else setOrder(data as Order | null) }
+    })
+    return () => { active = false }
   }, [id])
 
   if (lookupFailed) return <AccountShell title="Order details"><Alert>We couldn’t load this order. Please refresh the page.</Alert></AccountShell>

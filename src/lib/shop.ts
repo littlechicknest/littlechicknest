@@ -100,7 +100,7 @@ export const DEFAULT_CONFIG: ShopConfig = { shipping_flat: 4.95, free_shipping_o
 /** Mirrors public.shipping_cost() so totals shown match what the server charges. */
 export const shippingCost = (cfg: ShopConfig, subtotal: number, method: 'standard' | 'express') =>
   method === 'express' ? cfg.express_shipping
-    : cfg.free_shipping_over > 0 && subtotal >= cfg.free_shipping_over ? 0 : cfg.shipping_flat
+    : cfg.free_shipping_over > 0 && Math.round(subtotal * 100) >= Math.round(cfg.free_shipping_over * 100) ? 0 : cfg.shipping_flat
 
 /** Adds business days (skips Sat/Sun). */
 export function addBusinessDays(from: Date, days: number) {

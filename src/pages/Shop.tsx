@@ -80,6 +80,13 @@ export default function Shop() {
   }, [inCategory, query, colors, sizes, price, sort])
 
   const wanted = wantedColors(colors, query)
+  // the colour a card opens in: must fit the colour/size filters, then prefer searched colours with photos
+  const cardColor = (p: Product) => {
+    const filtered = colors.length > 0 || sizes.length > 0
+    const pool = filtered ? p.variants.filter((v) => (!colors.length || colors.includes(colorFamily(v.color))) && (!sizes.length || v.sizes.some((s) => sizes.includes(s)))) : p.variants
+    const pick = (l: typeof pool) => l.find((v) => v.images.length) ?? l[0]
+    return (pick(pool.filter((v) => wanted.includes(colorFamily(v.color)))) ?? (filtered ? pick(pool) : undefined))?.color
+  }
 
   const counts = useMemo(() => {
     const m: Record<string, number> = {}
@@ -190,7 +197,7 @@ export default function Shop() {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 md:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, i) => <ProductCardSkeleton key={i} />)}</div>
               ) : shown.length ? (
                 <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 md:grid-cols-3 xl:grid-cols-4">
-                  {shown.map((p, i) => <li key={p.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}><ProductCard product={p} priority={i < 4} color={matchVariant(p, wanted)?.color} look={look} /></li>)}
+                  {shown.map((p, i) => <li key={p.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}><ProductCard product={p} priority={i < 4} color={cardColor(p)} look={look} /></li>)}
                 </ul>
               ) : (
                 <Empty title={active.length ? 'Nothing matches those filters' : 'New designs are hatching'}>

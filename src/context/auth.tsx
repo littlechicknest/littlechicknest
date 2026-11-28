@@ -51,6 +51,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // never await Supabase calls inside this callback (it holds the auth lock)
       setTimeout(() => { if (active) void loadProfile(s) }, 0)
       if (event === 'PASSWORD_RECOVERY') navigate('/reset-password')
+      if (event === 'SIGNED_IN') {
+        // set by Login before leaving for Google; used once
+        let next: string | null = null
+        try { next = sessionStorage.getItem('lcn-next'); sessionStorage.removeItem('lcn-next') } catch { /* storage blocked */ }
+        if (next && next.startsWith('/') && !next.startsWith('//')) navigate(next, { replace: true })
+      }
     })
     return () => { active = false; sub.subscription.unsubscribe() }
   }, [navigate])
@@ -63,7 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: loading || (!!session && loaded.uid !== session.user.id),
     refreshProfile: () => loadProfile(session),
     signOut: async () => {
-      await supabase.auth.signOut()
+      const { error } = await supabase.auth.signOut()
+      // if the server couldn't end the session, still forget it on this device (shared computers)
+      if (error) {
+        console.error('sign-out', error.message)
+        await supabase.auth.signOut({ scope: 'local' })
+      }
       navigate('/')
     },
   }
