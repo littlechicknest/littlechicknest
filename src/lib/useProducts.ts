@@ -1,6 +1,6 @@
 import { setRates, usdRate } from './currency'
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { asModels, asPrices, asVariants, safeUrl, type Product, type ShopConfig } from './shop'
+import { asModels, asPrices, asVariants, asZones, safeUrl, type Product, type ShopConfig } from './shop'
 import { supabase } from './supabase'
 
 // shortcut: loads the whole active catalog once per page load; move to paginated RPC past ~500 products
@@ -48,11 +48,11 @@ export function useRates() {
   return ok
 }
 
-const CONFIG_KEY = 'lcn-config-v1'
+const CONFIG_KEY = 'lcn-config-v2'
 function storedConfig(): ShopConfig | null {
   try {
     const c = JSON.parse(localStorage.getItem(CONFIG_KEY) ?? 'null')
-    return c?.site_images ? c : null
+    return c?.site_images && Array.isArray(c.zones) ? c : null
   } catch { return null }
 }
 type ConfigState = {
@@ -76,8 +76,7 @@ function loadConfig() {
     const r = data?.[0]
     if (error || !r) return setCfgState({ ...cfgState, failed: true })
     const cfg: ShopConfig = {
-      shipping_flat: Number(r.shipping_flat), free_shipping_over: Number(r.free_shipping_over),
-      express_shipping: Number(r.express_shipping), checkout_mode: r.checkout_mode === 'live' ? 'live' : 'test',
+      zones: asZones(r.shipping_zones), checkout_mode: r.checkout_mode === 'live' ? 'live' : 'test',
       site_images: Object.fromEntries(Object.entries(r.site_images ?? {}).filter(([, u]) => safeUrl(u))),
     }
     try { localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)) } catch { /* storage blocked */ }

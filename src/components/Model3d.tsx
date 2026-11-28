@@ -15,8 +15,13 @@ export function Model3d({ src, alt }: { src: string; alt: string }) {
   }, [])
   if (state === 'failed') return <div className="grid aspect-square place-items-center bg-white p-6 text-center text-sm text-muted">The 3D preview could not load. Please check your connection and try again.</div>
   if (state === 'loading') return <div className="grid aspect-square place-items-center bg-white"><Spinner /></div>
-  return createElement('model-viewer', {
-    src, alt, 'camera-controls': '', 'touch-action': 'pan-y', 'auto-rotate': '', 'shadow-intensity': '1', exposure: '1',
-    'interaction-prompt': 'none', loading: 'eager', class: 'block aspect-square w-full bg-white',
-  })
+  // the viewer's own style fixes its height at 150px: it fills a square box instead, the same size as the photos
+  return (
+    <div className="aspect-square w-full bg-white">
+      {createElement('model-viewer', {
+        src, alt, 'camera-controls': '', 'touch-action': 'pan-y', 'auto-rotate': '', 'shadow-intensity': '1', exposure: '1',
+        'interaction-prompt': 'none', loading: 'eager', style: { display: 'block', width: '100%', height: '100%' },
+      })}
+    </div>
+  )
 }

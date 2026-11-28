@@ -104,13 +104,28 @@ export const formatUsd = (n: number | string | null | undefined) => usd.format(N
 export const formatMoney = (n: number | string | null | undefined) =>
   currency() === 'GBP' ? gbp.format(Number(n ?? 0) / usdRate('GBP')) : formatUsd(n)
 
-export type ShopConfig = { shipping_flat: number; free_shipping_over: number; express_shipping: number; checkout_mode: 'test' | 'live'; site_images: Record<string, string> }
-export const DEFAULT_CONFIG: ShopConfig = { shipping_flat: 4.95, free_shipping_over: 75, express_shipping: 12.95, checkout_mode: 'live', site_images: {} }
+/** Delivery prices for a group of countries (USD); `extra` is added for each item after the first. */
+export type Zone = { name: string; countries: string[]; standard: number; express: number; extra: number }
+export type ShopConfig = { zones: Zone[]; checkout_mode: 'test' | 'live'; site_images: Record<string, string> }
+export const DEFAULT_CONFIG: ShopConfig = { zones: [], checkout_mode: 'live', site_images: {} }
 
-/** Mirrors public.shipping_cost() so totals shown match what the server charges. */
-export const shippingCost = (cfg: ShopConfig, subtotal: number, method: 'standard' | 'express') =>
-  method === 'express' ? cfg.express_shipping
-    : cfg.free_shipping_over > 0 && Math.round(subtotal * 100) >= Math.round(cfg.free_shipping_over * 100) ? 0 : cfg.shipping_flat
+export const asZones = (v: unknown): Zone[] =>
+  Array.isArray(v) ? v.flatMap((z) => {
+    const n = (x: unknown) => (Number.isFinite(Number(x)) && Number(x) >= 0 ? Number(x) : NaN)
+    const zone = { name: String(z?.name ?? ''), countries: Array.isArray(z?.countries) ? z.countries.map(String) : [], standard: n(z?.standard), express: n(z?.express), extra: n(z?.extra ?? 0) }
+    return zone.countries.length && [zone.standard, zone.express, zone.extra].every(Number.isFinite) ? [zone] : []
+  }) : []
+
+export const zoneOf = (cfg: ShopConfig, country: string) => cfg.zones.find((z) => z.countries.includes(country.toUpperCase()))
+
+/** Mirrors public.shipping_cost(): the destination's price, plus `extra` per item after the first. Null = no delivery there. */
+export const shippingCost = (cfg: ShopConfig, country: string, items: number, method: 'standard' | 'express') => {
+  const z = zoneOf(cfg, country)
+  return z ? Math.round(((method === 'express' ? z.express : z.standard) + Math.max(items - 1, 0) * z.extra) * 100) / 100 : null
+}
+
+/** The cheapest standard delivery anywhere ("Delivery from …"). */
+export const cheapestDelivery = (cfg: ShopConfig) => (cfg.zones.length ? Math.min(...cfg.zones.map((z) => z.standard)) : null)
 
 /** Adds business days (skips Sat/Sun). */
 export function addBusinessDays(from: Date, days: number) {

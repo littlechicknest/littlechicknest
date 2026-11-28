@@ -3,27 +3,21 @@ import { useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useCart } from '../context/cart'
 import { useCurrency } from '../lib/currency'
-import { formatMoney, priceOf, productImage, sizeText } from '../lib/shop'
+import { cheapestDelivery, formatMoney, priceOf, productImage, sizeText } from '../lib/shop'
 import { useProducts, useShopConfig } from '../lib/useProducts'
 import { QtyStepper, useOverlay } from './ui'
 
-export function FreeShippingBar({ subtotal }: { subtotal: number }) {
+/** Delivery is never free: it is priced by country at checkout. Shows where it starts. */
+export function DeliveryNote() {
   const cfg = useShopConfig()
   useCurrency()
-  if (!cfg || cfg.free_shipping_over <= 0) return null
-  const left = cfg.free_shipping_over - subtotal
-  const pct = Math.min(100, (subtotal / cfg.free_shipping_over) * 100)
+  const from = cfg && cheapestDelivery(cfg)
+  if (from == null) return null
   return (
-    <div>
-      <p className="mb-2 flex items-center gap-2 text-[13px] text-ink">
-        <Truck className="size-4 text-olive" aria-hidden />
-        {left > 0 ? <span>You’re <strong className="text-orange-2">{formatMoney(left)}</strong> away from free delivery</span>
-          : <span className="font-semibold text-olive">You’ve unlocked free standard delivery!</span>}
-      </p>
-      <div className="h-1.5 overflow-hidden rounded-full bg-sand/70" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Progress to free delivery">
-        <div className="h-full rounded-full bg-gradient-to-r from-yolk to-orange transition-[width] duration-500" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
+    <p className="flex items-center gap-2 text-[13px] text-ink">
+      <Truck className="size-4 shrink-0 text-olive" aria-hidden />
+      <span>Delivery from <strong className="text-olive">{formatMoney(from)}</strong>, priced by country at checkout. <Link to="/shipping-returns" className="underline">See prices</Link></span>
+    </p>
   )
 }
 
@@ -69,7 +63,7 @@ export function CartDrawer() {
           </div>
         ) : (
           <>
-            <div className="border-b border-line bg-paper px-5 py-3.5"><FreeShippingBar subtotal={subtotal} /></div>
+            <div className="border-b border-line bg-paper px-5 py-3.5"><DeliveryNote /></div>
             <div className="flex-1 overflow-y-auto">
               <ul className="divide-y divide-line px-5">
                 {rows.map((r) => {

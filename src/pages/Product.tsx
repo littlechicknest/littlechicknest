@@ -8,7 +8,7 @@ import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
 import { useCurrency } from '../lib/currency'
-import { asLook, categoryLabel, deliveryWindow, formatDate, formatMoney, hasLooks, LOOKS, modelLink, priceLabel, priceOf, productImages, type Look, type Product as P } from '../lib/shop'
+import { asLook, categoryLabel, cheapestDelivery, deliveryWindow, formatDate, formatMoney, hasLooks, LOOKS, modelLink, priceLabel, priceOf, productImages, type Look, type Product as P } from '../lib/shop'
 import { supabase } from '../lib/supabase'
 import { useProducts, useShopConfig } from '../lib/useProducts'
 import NotFound from './NotFound'
@@ -241,7 +241,7 @@ function ProductView({ product }: { product: P }) {
               <button type="button" title="Jump to reviews" onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })} className="flex items-center gap-1.5 text-sm text-muted hover:text-olive"><Stars value={product.rating_avg} /> {product.rating_count} review{product.rating_count === 1 ? '' : 's'}</button>
             )}
           </div>
-          {cfg && cfg.free_shipping_over > 0 && <p className="mt-1 text-[13px] text-muted">Free standard delivery on orders over {formatMoney(cfg.free_shipping_over)}</p>}
+          {cfg && cheapestDelivery(cfg) != null && <p className="mt-1 text-[13px] text-muted">Delivery from {formatMoney(cheapestDelivery(cfg))}, priced by country at checkout</p>}
 
           {/* a product sold in sizes only has one "Standard" colour: nothing to choose */}
           {product.variants.length > 0 && !(product.variants.length === 1 && product.variants[0].color === 'Standard') && (
@@ -295,11 +295,8 @@ function ProductView({ product }: { product: P }) {
           <div className="mt-6">
             <Accordion title="Description" defaultOpen>{product.description ? <Description text={product.description} /> : <p>Made to order with care.</p>}</Accordion>
             <Accordion title="Delivery & returns">
-              <p className="mb-2">Standard delivery {cfg ? `${formatMoney(cfg.shipping_flat)}, free over ${formatMoney(cfg.free_shipping_over)}` : ''} · Express {cfg ? formatMoney(cfg.express_shipping) : ''}.</p>
+              <p className="mb-2">Delivery is priced by country{cfg && cheapestDelivery(cfg) != null ? `, from ${formatMoney(cheapestDelivery(cfg))}` : ''}: the further away, the more it costs. Express is also available. <Link to="/shipping-returns" className="font-medium text-orange-2 underline">See all delivery prices</Link>.</p>
               <p>Because every item is made for you, we can’t accept returns for change of mind, but if anything arrives damaged, faulty or wrong we’ll put it right. <Link to="/shipping-returns" className="font-medium text-orange-2 underline">Read the full policy</Link>.</p>
-            </Accordion>
-            <Accordion title="Care">
-              <p>Wash inside out at 30°C with similar colours. Do not tumble dry or iron over the print or embroidery. Mugs are dishwasher and microwave safe.</p>
             </Accordion>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
 import { CURRENCIES, setCurrency, useCurrency, type Currency } from '../lib/currency'
-import { categoryLabel, formatMoney, lookColor, matchVariant, priceLabel, productImage, searchFor, wantedColors } from '../lib/shop'
+import { categoryLabel, cheapestDelivery, formatMoney, lookColor, matchVariant, priceLabel, productImage, searchFor, wantedColors } from '../lib/shop'
 import { SiteImg } from '../lib/siteImages'
 import { supabase } from '../lib/supabase'
 import { useProducts, useRates, useShopConfig } from '../lib/useProducts'
@@ -180,8 +180,9 @@ const MESSAGES = [
 function AnnouncementBar() {
   const cfg = useShopConfig()
   useCurrency()
-  // the delivery offer uses the threshold set in Admin, in the shopper's currency (same rule as FreeShippingBar)
-  const messages = cfg && cfg.free_shipping_over > 0 ? [`Free standard delivery on orders over ${formatMoney(cfg.free_shipping_over)}`, ...MESSAGES] : MESSAGES
+  // delivery starts at the cheapest zone set in Admin, in the shopper's currency
+  const from = cfg && cheapestDelivery(cfg)
+  const messages = from != null ? [`Tracked delivery from ${formatMoney(from)}`, ...MESSAGES] : MESSAGES
   const [n, setI] = useState(0)
   const i = n % messages.length
   useEffect(() => {

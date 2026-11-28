@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addBusinessDays, asVariants, categoryLabel, colorFamily, DEFAULT_CONFIG, imgSrc, inCategory, lookColor, lookInSearch, matchesSearch, matchVariant, modelLink, priceLabel, priceOf, productImages, safeUrl, searchFor, shippingCost, sizeText, wantedColors } from './shop'
+import { addBusinessDays, asVariants, asZones, cheapestDelivery, categoryLabel, colorFamily, DEFAULT_CONFIG, imgSrc, inCategory, lookColor, lookInSearch, matchesSearch, matchVariant, modelLink, priceLabel, priceOf, productImages, safeUrl, searchFor, shippingCost, sizeText, wantedColors } from './shop'
 
 describe('colours', () => {
   const p = { title: 'Hoodie', description: '', category: 'Men', images: [], variants: [
@@ -63,12 +63,19 @@ describe('storefront helpers', () => {
     expect(imgSrc('javascript:alert(1)')).toBeNull()
     expect(imgSrc('//evil.com/a.png')).toBeNull()
   })
-  it('matches the server shipping rules', () => {
-    const cfg = { ...DEFAULT_CONFIG, shipping_flat: 4.95, free_shipping_over: 75, express_shipping: 12.95 }
-    expect(shippingCost(cfg, 50, 'standard')).toBe(4.95)
-    expect(shippingCost(cfg, 75, 'standard')).toBe(0)
-    expect(shippingCost(cfg, 200, 'express')).toBe(12.95)
-    expect(shippingCost({ ...cfg, free_shipping_over: 0 }, 500, 'standard')).toBe(4.95)
+  it('matches the server shipping rules: by country and number of items, never free', () => {
+    const cfg = { ...DEFAULT_CONFIG, zones: asZones([
+      { name: 'UK', countries: ['GB'], standard: 5.95, express: 12.95, extra: 1.5 },
+      { name: 'Far', countries: ['AU', 'NZ'], standard: '14.95', express: 29.95, extra: 3.5 },
+      { name: 'Broken', countries: ['XX'], standard: 'abc', express: 1 },
+    ]) }
+    expect(cfg.zones).toHaveLength(2)
+    expect(shippingCost(cfg, 'GB', 1, 'standard')).toBe(5.95)
+    expect(shippingCost(cfg, 'gb', 3, 'standard')).toBe(8.95)
+    expect(shippingCost(cfg, 'NZ', 2, 'express')).toBe(33.45)
+    expect(shippingCost(cfg, 'JP', 1, 'standard')).toBeNull()
+    expect(cheapestDelivery(cfg)).toBe(5.95)
+    expect(cheapestDelivery(DEFAULT_CONFIG)).toBeNull()
   })
   it('skips weekends when adding business days', () => {
     const fri = new Date('2026-11-20T12:00:00')

@@ -1,14 +1,13 @@
 import { CheckCircle2, ChevronLeft, Clock, CreditCard, FlaskConical, Lock, Mail, Package, ShieldCheck, Truck } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { FreeShippingBar } from '../components/CartDrawer'
 import { AddressBlock, ItemRow, OrderProgress, TestBadge } from '../components/orders'
 import { Alert, Empty, Field, Spinner, useTitle } from '../components/ui'
 import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import type { Json, Tables } from '../lib/database.types'
 import {
-  asAddress, asItems, COUNTRIES, deliveryWindow, EMPTY_ADDRESS, formatMoney, formatUsd, orderNumber, productImage, shippingCost, type Address,
+  asAddress, asItems, countryName, COUNTRIES, deliveryWindow, EMPTY_ADDRESS, formatMoney, formatUsd, orderNumber, productImage, shippingCost, zoneOf, type Address,
 } from '../lib/shop'
 import { functionError, supabase } from '../lib/supabase'
 import { useCurrency } from '../lib/currency'
@@ -78,8 +77,13 @@ export default function Checkout() {
   }, [session, profile, authLoading])
   useEffect(() => { uidRef.current = session?.user.id }, [session])
 
-  const shipping = cfg ? shippingCost(cfg, subtotal, method) : 0
-  const total = subtotal + shipping
+  // delivery is priced by the country it goes to and the number of items (same rule as the server)
+  const parcelItems = rows.reduce((n, r) => n + r.quantity, 0)
+  const priceFor = (m: Method) => (cfg ? shippingCost(cfg, addr.country, parcelItems, m) : null)
+  const shipping = priceFor(method)
+  const noDelivery = !!cfg && shipping == null
+  const zone = cfg ? zoneOf(cfg, addr.country) : undefined
+  const total = subtotal + (shipping ?? 0)
   const errors = useMemo(() => {
     const e: Partial<Record<keyof Address, string>> = {}
     for (const k of REQUIRED) if (!addr[k].trim()) e[k] = 'Required'
@@ -102,7 +106,7 @@ export default function Checkout() {
       formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus()
       return
     }
-    if (!cfg) return
+    if (!cfg || noDelivery) return
     setBusy(true)
     const clean = Object.fromEntries(Object.entries(addr).map(([k, v]) => [k, v.trim()])) as Address
     if (save) {
@@ -164,10 +168,9 @@ export default function Checkout() {
         </ul>
         <dl className="space-y-2 border-t border-line pt-4 text-sm">
           <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatUsd(subtotal)}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted">Delivery ({method})</dt><dd>{shipping === 0 ? <span className="font-semibold text-leaf">Free</span> : formatUsd(shipping)}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-muted">Delivery ({method}{zone ? `, ${zone.name}` : ''})</dt><dd>{shipping == null ? '–' : formatUsd(shipping)}</dd></div>
           <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-olive"><dt>Total</dt><dd className="text-right">{formatUsd(total)} <span className="text-xs font-normal text-muted">USD</span>{cur === 'GBP' && <span className="block text-xs font-normal text-muted">about {formatMoney(total)}</span>}</dd></div>
         </dl>
-        {method === 'standard' && <div className="mt-4 rounded-lg bg-cream-2 p-3"><FreeShippingBar subtotal={subtotal} /></div>}
       </div>
       <ul className="mt-4 space-y-2 px-1 text-[13px] text-muted">
         <li className="flex items-center gap-2"><ShieldCheck className="size-4 text-olive" aria-hidden /> Secure, encrypted checkout by Stripe</li>
@@ -227,15 +230,15 @@ export default function Checkout() {
               </section>
 
               <section className="card p-5 sm:p-6" aria-labelledby="h-del">
-                <h2 id="h-del" className="mb-4 flex items-center gap-2 text-lg"><span className="grid size-7 place-items-center rounded-full bg-olive font-sans text-xs text-white">3</span> Delivery</h2>
+                <h2 id="h-del" className="mb-4 flex items-center gap-2 text-lg"><span className="grid size-7 place-items-center rounded-full bg-olive font-sans text-xs text-white">3</span> Delivery{zone && <span className="ml-auto font-sans text-[13px] font-normal text-muted">to {zone.name}{parcelItems > 1 && zone.extra > 0 ? ` · includes ${formatUsd(zone.extra)} for each extra item` : ''}</span>}</h2>
                 <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-labelledby="h-del">
                   {(['standard', 'express'] as Method[]).map((m) => {
-                    const cost = cfg ? shippingCost(cfg, subtotal, m) : 0
+                    const cost = priceFor(m)
                     return (
                       <label key={m} className={`relative flex cursor-pointer gap-3 rounded-xl border-2 p-4 transition ${method === m ? 'border-orange bg-orange-soft/40' : 'border-line bg-paper hover:border-sand'}`}>
                         <input type="radio" name="method" value={m} checked={method === m} onChange={() => setMethod(m)} className="mt-1 size-4 accent-orange" />
                         <span className="flex-1">
-                          <span className="flex justify-between font-semibold text-olive"><span>{m === 'standard' ? 'Standard' : 'Express'}</span><span>{cost === 0 ? 'Free' : formatUsd(cost)}</span></span>
+                          <span className="flex justify-between font-semibold text-olive"><span>{m === 'standard' ? 'Standard' : 'Express'}</span><span>{cost == null ? '–' : formatUsd(cost)}</span></span>
                           <span className="mt-0.5 block text-[13px] text-muted"><Truck className="mr-1 inline size-3.5" aria-hidden />Arrives {deliveryWindow(m)}</span>
                         </span>
                       </label>
@@ -260,8 +263,9 @@ export default function Checkout() {
                 <div className="mt-3 flex gap-1.5" aria-hidden>{['VISA', 'MC', 'AMEX', 'Pay', 'G Pay'].map((c) => <span key={c} className="rounded border border-sand bg-paper px-1.5 py-0.5 text-[10px] font-bold text-olive">{c}</span>)}</div>
               </section>
 
+              {noDelivery && <Alert>Sorry, we don’t deliver to {countryName(addr.country)} yet. Please choose another country.</Alert>}
               {error && <Alert>{error}</Alert>}
-              <button className="btn-primary w-full text-sm" disabled={busy || !cfg}>
+              <button className="btn-primary w-full text-sm" disabled={busy || !cfg || noDelivery}>
                 <Lock className="size-4" aria-hidden />
                 {busy ? 'Placing your order…' : cfg?.checkout_mode === 'live' ? `Continue to secure payment · ${formatUsd(total)}` : `Place test order · ${formatUsd(total)}`}
               </button>
