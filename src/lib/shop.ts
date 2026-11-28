@@ -25,6 +25,16 @@ export const lookOf = (category: string | null | undefined): Look | undefined =>
   category === 'Men' ? 'men' : category === 'Women' ? 'women' : undefined
 export const asLook = (v: string | null | undefined): Look | undefined => (v === 'men' || v === 'women' ? v : undefined)
 
+const LOOK_WORDS: Record<string, Look> = {
+  men: 'men', man: 'men', mens: 'men', "men's": 'men', male: 'men', males: 'men', gents: 'men',
+  women: 'women', woman: 'women', womens: 'women', "women's": 'women', female: 'women', females: 'women', ladies: 'women', lady: 'women',
+}
+/** "hoodie male" -> { look: 'men', rest: 'hoodie' }: a man / woman word in the search chooses whose pictures to show instead of being matched as text. */
+export const lookInSearch = (query: string): { look?: Look; rest: string } => {
+  const words = query.trim().split(/\s+/).filter(Boolean)
+  return { look: words.map((w) => LOOK_WORDS[w.toLowerCase()]).find(Boolean), rest: words.filter((w) => !LOOK_WORDS[w.toLowerCase()]).join(' ') }
+}
+
 /** `option` names what `sizes` holds when it isn't sizes (e.g. a design choice); `by_option` holds the photos of each choice.
  *  `men` / `women`: the colour's photos with a man / a woman in them (and none of Gelato's plain mockup); only on Unisex products that have them. */
 export type Variant = { color: string; hex?: string; option?: string; sizes: string[]; images: string[]; by_option?: Record<string, string[]>; men?: string[]; women?: string[] }
@@ -44,7 +54,7 @@ export type Product = {
   created_at: string
   rating_avg: number | null
   rating_count: number
-  /** colour -> Gelato 3D preview link ('' = product without colours) */
+  /** colour -> .glb 3D model link ('' = every colour) */
   models: Record<string, string>
 }
 
@@ -160,6 +170,10 @@ export const asItems = (v: Json): OrderItem[] => (Array.isArray(v) ? (v as unkno
 export const hasLooks = (p: Pick<Product, 'category' | 'variants'>) =>
   p.category === 'Unisex' && p.variants.some((v) => v.men?.length || v.women?.length)
 
+/** The first colour of a Unisex product with pictures of a man (or a woman), so its card shows one of those and not Gelato's plain mockup. */
+export const lookColor = (p: Pick<Product, 'category' | 'variants'>, look?: Look) =>
+  look && p.category === 'Unisex' ? p.variants.find((v) => v[look]?.length)?.color : undefined
+
 /** Photos of one colour (and design option); falls back to the colour, then to the first colour that has photos.
  *  With a `look`, a Unisex product shows only the photos of a man or of a woman (when that colour has them). */
 export const productImages = (p: Pick<Product, 'images' | 'variants'> & { category?: string }, color?: string | null, size?: string | null, look?: Look) => {
@@ -200,6 +214,14 @@ export const matchesSearch = (p: Pick<Product, 'title' | 'description' | 'catego
   return query.toLowerCase().split(/\s+/).every((w) => text.includes(w))
 }
 
+/** What a search finds: with a man / woman word, only Men's (or Women's) and Unisex products, and `look` says whose pictures to show. */
+export const searchFor = (query: string) => {
+  const { look, rest } = lookInSearch(query)
+  const test = (p: Pick<Product, 'title' | 'description' | 'category' | 'variants'>) =>
+    (!look || inCategory(p, look === 'men' ? 'Men' : 'Women')) && (!rest || matchesSearch(p, rest))
+  return { look, rest, test }
+}
+
 // Customer-facing order steps; Gelato statuses are mapped to these server-side.
 export const ORDER_STEPS = ['paid', 'processing', 'printing', 'shipped', 'delivered'] as const
 export const STATUS_LABEL: Record<string, string> = {
@@ -227,12 +249,12 @@ export const orderNumber = (id: string) => `LCN-${id.slice(0, 8).toUpperCase()}`
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 
-/** The colour's 3D preview link, only if it is Gelato's viewer. */
+/** The colour's 3D model (a .glb the admin uploaded), else the one for every colour; only files from our storage. */
 export const modelLink = (p: Pick<Product, 'models'>, color?: string | null) => {
-  const u = p.models[color ?? ''] ?? p.models['']
+  const u = p.models[color ?? ''] || p.models['']
   try {
     const url = new URL(u ?? '')
-    return url.protocol === 'https:' && /(^|\.)gelato\.tech$/i.test(url.hostname) ? url.toString() : null
+    return url.protocol === 'https:' && /\.supabase\.co$/i.test(url.hostname) && /^\/storage\/v1\/object\/public\/product-models\/.+\.glb$/i.test(url.pathname) ? url.toString() : null
   } catch { return null }
 }
 

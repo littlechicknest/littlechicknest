@@ -7,7 +7,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 const csp: Plugin = {
   name: 'csp', apply: 'build',
   transformIndexHtml: () => [{ tag: 'meta', injectTo: 'head-prepend', attrs: { 'http-equiv': 'Content-Security-Policy', content:
-    "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co; frame-src https://challenges.cloudflare.com https://gelato.tech https://*.gelato.tech; object-src 'none'; base-uri 'self'; form-action 'self'" } }],
+    "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://www.gstatic.com blob: data:; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'" } }],
 }
 
 // GitHub Pages serves the site from /<repo>/

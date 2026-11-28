@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addBusinessDays, asVariants, categoryLabel, colorFamily, DEFAULT_CONFIG, imgSrc, inCategory, matchesSearch, matchVariant, modelLink, priceLabel, priceOf, productImages, safeUrl, shippingCost, sizeText, wantedColors } from './shop'
+import { addBusinessDays, asVariants, categoryLabel, colorFamily, DEFAULT_CONFIG, imgSrc, inCategory, lookColor, lookInSearch, matchesSearch, matchVariant, modelLink, priceLabel, priceOf, productImages, safeUrl, searchFor, shippingCost, sizeText, wantedColors } from './shop'
 
 describe('colours', () => {
   const p = { title: 'Hoodie', description: '', category: 'Men', images: [], variants: [
@@ -88,9 +88,27 @@ describe('Unisex pictures on men / women', () => {
     expect(productImages(p, 'Red', null, 'men')).toEqual(['https://x/red.webp'])
     expect(productImages({ ...p, category: 'Men' }, 'Black', null, 'women')).toEqual(v.images)
   })
-  it('only shows Gelato 3D links', () => {
-    expect(modelLink({ models: { Black: 'https://preflight.internal.ie.live.gelato.tech/product/preview?a=1' } }, 'Black')).toContain('gelato.tech')
-    expect(modelLink({ models: { Black: 'https://evil.example/x' } }, 'Black')).toBeNull()
-    expect(modelLink({ models: { '': 'https://preflight.live.gelato.tech/p' } }, null)).toContain('gelato.tech')
+  it('cards on men / women open in a colour that has those pictures', () => {
+    expect(lookColor({ ...p, variants: [p.variants[1], v] }, 'men')).toBe('Black')
+    expect(lookColor({ ...p, category: 'Men' }, 'men')).toBeUndefined()
+    expect(lookColor(p, undefined)).toBeUndefined()
+  })
+  it('reads man / woman words in a search', () => {
+    expect(lookInSearch('Hoodie MALE')).toEqual({ look: 'men', rest: 'Hoodie' })
+    expect(lookInSearch("women's tee")).toEqual({ look: 'women', rest: 'tee' })
+    expect(lookInSearch('female')).toEqual({ look: 'women', rest: '' })
+    expect(lookInSearch('mug')).toEqual({ look: undefined, rest: 'mug' })
+    const s = searchFor('hoodie female')
+    const item = (category: string) => ({ title: 'Cosy Hoodie', description: '', category, variants: [] })
+    expect(['Unisex', 'Women', 'Men', 'Kids'].map((c) => s.test(item(c)))).toEqual([true, true, false, false])
+  })
+  it('only shows .glb models from our storage', () => {
+    const glb = 'https://abc.supabase.co/storage/v1/object/public/product-models/1/a.glb'
+    expect(modelLink({ models: { Black: glb } }, 'Black')).toBe(glb)
+    expect(modelLink({ models: { '': glb } }, 'White')).toBe(glb)
+    expect(modelLink({ models: { Black: '', '': glb } }, 'Black')).toBe(glb)
+    expect(modelLink({ models: { Black: 'https://evil.example/storage/v1/object/public/product-models/a.glb' } }, 'Black')).toBeNull()
+    expect(modelLink({ models: { Black: 'https://preflight.live.gelato.tech/p' } }, 'Black')).toBeNull()
+    expect(modelLink({ models: {} }, 'Black')).toBeNull()
   })
 })

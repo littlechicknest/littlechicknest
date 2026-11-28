@@ -3,7 +3,7 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard'
 import { Alert, Empty, Modal, PageHeader, useTitle } from '../components/ui'
-import { CATEGORY_INFO, categoryLabel, colorFamily, formatMoney, inCategory as isIn, lookOf, matchesSearch, matchVariant, wantedColors, type Product } from '../lib/shop'
+import { CATEGORY_INFO, categoryLabel, colorFamily, formatMoney, inCategory as isIn, lookInSearch, lookOf, matchesSearch, matchVariant, wantedColors, type Product } from '../lib/shop'
 import { useCurrency } from '../lib/currency'
 import { useProducts } from '../lib/useProducts'
 
@@ -24,13 +24,16 @@ export default function Shop() {
   useCurrency() // price filter labels follow the chosen currency
   const [params, setParams] = useSearchParams()
   const category = TABS.find((c) => c === params.get('category')) ?? null
-  const look = lookOf(category)
   const sort: Sort = Object.hasOwn(SORTS, params.get('sort') ?? '') ? (params.get('sort') as Sort) : 'featured'
   const q = params.get('q') ?? ''
   const colors = list(params.get('color'))
   const sizes = list(params.get('size'))
   const price = Object.hasOwn(PRICES, params.get('price') ?? '') ? (params.get('price') as PriceKey) : null
-  const query = useDeferredValue(q.trim().toLowerCase())
+  const fullQuery = useDeferredValue(q.trim().toLowerCase())
+  // "hoodie male": Men's and Unisex products, Unisex ones shown on a man; "male" itself is not matched as text
+  const searched = lookInSearch(fullQuery)
+  const query = searched.rest
+  const look = lookOf(category) ?? (!category || category === 'Unisex' ? searched.look : undefined)
   const { products, loading, error } = useProducts()
   const [filtersOpen, setFiltersOpen] = useState(false)
   useTitle(category ? categoryLabel(category) : q ? `Search: ${q}` : 'Shop all')
@@ -45,7 +48,8 @@ export default function Shop() {
     set(key, (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]).join(',') || null)
   const clearAll = () => setParams((p) => { ['color', 'size', 'price', 'q'].forEach((k) => p.delete(k)); return p }, { replace: true })
 
-  const inCategory = useMemo(() => (products ?? []).filter((p) => !category || isIn(p, category)), [products, category])
+  const inCategory = useMemo(() => (products ?? []).filter((p) =>
+    category ? isIn(p, category) : !look || isIn(p, look === 'men' ? 'Men' : 'Women')), [products, category, look])
 
   // facets come from what's actually in this category
   const facets = useMemo(() => {

@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
 import { useCurrency } from '../lib/currency'
-import { priceLabel, productImages, type Look, type Product } from '../lib/shop'
+import { lookColor, priceLabel, productImages, type Look, type Product } from '../lib/shop'
 import { Img, Stars } from './ui'
 
 const NEW_DAYS = 21
@@ -11,7 +11,9 @@ const LOADED_AT = Date.now()
 
 /** `color` shows that colour's photos and opens the product in it (used by the filters and search).
  *  `look` shows a Unisex product on a man or a woman (the Men / Women pages). */
-export function ProductCard({ product, priority = false, color, look }: { product: Product; priority?: boolean; color?: string; look?: Look }) {
+export function ProductCard({ product, priority = false, color: asked, look }: { product: Product; priority?: boolean; color?: string; look?: Look }) {
+  // on a man / woman, a Unisex card opens in a colour that has such pictures (Gelato's plain mockup is never the thumbnail)
+  const color = asked && (!look || product.variants.find((v) => v.color === asked)?.[look]?.length) ? asked : lookColor(product, look) ?? asked
   const { has, toggle } = useWishlist()
   const { add } = useCart()
   useCurrency()

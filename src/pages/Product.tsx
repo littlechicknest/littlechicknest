@@ -2,6 +2,7 @@ import { Box, ChevronLeft, ChevronRight, Heart, Images, RotateCcw, Ruler, Shield
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { ProductCarousel } from '../components/Carousel'
+import { Model3d } from '../components/Model3d'
 import { Accordion, Alert, Breadcrumbs, Field, Modal, QtyStepper, Spinner, Stars, useTitle } from '../components/ui'
 import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
@@ -53,7 +54,7 @@ function Description({ text }: { text: string }) {
   return <>{blocks}</>
 }
 
-/** Photos, plus Gelato's 3D preview of the colour when there is one: `in3d` lives in the page so it stays on while the colour changes. */
+/** Photos, plus the colour's 3D model when there is one (only downloaded once the shopper asks for it): `in3d` lives in the page so it stays on while the colour changes. */
 function Gallery({ images, alt, model, in3d, set3d }: { images: string[]; alt: string; model: string | null; in3d: boolean; set3d: (on: boolean) => void }) {
   const [active, setActive] = useState(0)
   const [zoom, setZoom] = useState<string | null>(null)
@@ -67,7 +68,7 @@ function Gallery({ images, alt, model, in3d, set3d }: { images: string[]; alt: s
     if (el) el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' })
   }
 
-  const show3d = !!model && (in3d || !images.length)
+  const show3d = !!model && in3d
   // the photo track remounts at the first photo after 3D view: scroll it back to the selected one
   useEffect(() => {
     const el = track.current
@@ -78,8 +79,9 @@ function Gallery({ images, alt, model, in3d, set3d }: { images: string[]; alt: s
     <div className="lg:sticky lg:top-24">
       <div className="group relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-paper">
         {show3d ? (
-          <iframe key={model} src={model} title={`${alt}, 3D preview`} allow="fullscreen; xr-spatial-tracking" className="block aspect-square w-full bg-white" />
-        ) : <div ref={track} onScroll={(e) => setActive(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
+          <Model3d key={model} src={model} alt={`${alt}, 3D preview`} />
+        ) : !images.length ? <div className="grid aspect-square place-items-center bg-cream-2 text-muted">Image coming soon</div>
+        : <div ref={track} onScroll={(e) => setActive(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
           className="no-scrollbar flex aspect-square snap-x snap-mandatory overflow-x-auto">
           {images.map((src, n) => (
             <div key={src} className="relative size-full shrink-0 snap-center overflow-hidden"
@@ -91,10 +93,10 @@ function Gallery({ images, alt, model, in3d, set3d }: { images: string[]; alt: s
             </div>
           ))}
         </div>}
-        {model && images.length > 0 && (
+        {model && (
           <button type="button" onClick={() => set3d(!show3d)} aria-pressed={show3d}
             className="absolute right-3 bottom-3 flex items-center gap-1.5 rounded-full bg-olive px-3.5 py-2 text-[13px] font-semibold text-white shadow-md transition hover:bg-olive-2">
-            {show3d ? <><Images className="size-4" aria-hidden /> Photos</> : <><Box className="size-4" aria-hidden /> 3D view</>}
+            {show3d ? <><Images className="size-4" aria-hidden /> Photos</> : <><Box className="size-4" aria-hidden /> 3D preview</>}
           </button>
         )}
         {show3d && <p className="pointer-events-none absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[12px] font-medium text-olive shadow-sm">Drag to turn it around</p>}
