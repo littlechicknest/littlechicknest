@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronLeft, CreditCard, FlaskConical, Lock, Mail, Package, ShieldCheck, Truck } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, Clock, CreditCard, FlaskConical, Lock, Mail, Package, ShieldCheck, Truck } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { FreeShippingBar } from '../components/CartDrawer'
@@ -263,21 +263,42 @@ export function CheckoutSuccess() {
   const { clear } = useCart()
   const [order, setOrder] = useState<Order | null | undefined>(id ? undefined : null)
 
-  useEffect(() => { clear() }, [clear])
+  // empty the basket only for an order placed just now, not when an old confirmation link is opened
+  const fresh = !!order && Date.now() - new Date(order.created_at).getTime() < 2 * 3600_000
+  useEffect(() => { if (fresh) clear() }, [fresh, clear])
   useEffect(() => {
-    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return
-    let tries = 0
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) { setOrder(null); return }
+    let tries = 0, active = true
     // after Stripe the webhook may land a moment after the redirect, so poll briefly
     const load = () => supabase.from('orders').select('*').eq('id', id).maybeSingle().then(({ data }) => {
-      if (data?.status === 'pending' && tries++ < 6) { setTimeout(load, 1500); return }
+      if (!active) return
+      if (data?.status === 'pending' && tries++ < 12) { setTimeout(load, 1500); return }
       setOrder(data as Order | null)
     })
     load()
+    return () => { active = false }
   }, [id])
 
   if (order === undefined) return <Spinner label="Confirming your order" />
-  const items = order ? asItems(order.items) : []
-  const name = asAddress(order?.shipping_address)?.name.split(' ')[0]
+  // pending = Stripe hasn't confirmed the payment yet; no order = we couldn't load it
+  if (!order || order.status === 'pending') return (
+    <div className="container-x py-8">
+      <Steps at={3} />
+      <div className="card mx-auto max-w-xl p-8 text-center">
+        <Clock className="mx-auto size-12 text-orange-2" aria-hidden />
+        <h1 className="mt-3 text-2xl">{order ? 'Confirming your payment' : 'We couldn’t find this order'}</h1>
+        <p className="mt-2 text-muted">{order
+          ? 'Stripe hasn’t confirmed your payment yet. This usually takes a minute. Check your orders shortly; if the payment didn’t go through, you haven’t been charged.'
+          : 'If you just paid, your order will appear in your account in a few minutes.'}</p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link to="/orders" className="btn-primary">My orders</Link>
+          <Link to="/shop" className="btn-ghost">Continue shopping</Link>
+        </div>
+      </div>
+    </div>
+  )
+  const items = asItems(order.items)
+  const name = asAddress(order.shipping_address)?.name.split(' ')[0]
   return (
     <div className="container-x py-8">
       <Steps at={3} />

@@ -71,7 +71,7 @@ export function CartDrawer() {
                   const img = productImage(r.product, r.color, r.size)
                   return (
                     <li key={r.key} className="flex gap-4 py-4">
-                      <Link to={`/product/${r.product_id}`} onClick={close} className="size-[84px] shrink-0 overflow-hidden rounded-lg border border-line bg-paper">
+                      <Link to={`/product/${r.product_id}`} onClick={close} tabIndex={-1} aria-hidden className="size-[84px] shrink-0 overflow-hidden rounded-lg border border-line bg-paper">
                         {img && <img src={img} alt="" className="size-full object-cover" loading="lazy" />}
                       </Link>
                       <div className="flex min-w-0 flex-1 flex-col">

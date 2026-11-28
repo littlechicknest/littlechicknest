@@ -95,7 +95,7 @@ export const formatMoney = (n: number | string | null | undefined) =>
   currency() === 'GBP' ? gbp.format(Number(n ?? 0) / usdRate('GBP')) : formatUsd(n)
 
 export type ShopConfig = { shipping_flat: number; free_shipping_over: number; express_shipping: number; checkout_mode: 'test' | 'live'; site_images: Record<string, string> }
-export const DEFAULT_CONFIG: ShopConfig = { shipping_flat: 4.95, free_shipping_over: 75, express_shipping: 12.95, checkout_mode: 'test', site_images: {} }
+export const DEFAULT_CONFIG: ShopConfig = { shipping_flat: 4.95, free_shipping_over: 75, express_shipping: 12.95, checkout_mode: 'live', site_images: {} }
 
 /** Mirrors public.shipping_cost() so totals shown match what the server charges. */
 export const shippingCost = (cfg: ShopConfig, subtotal: number, method: 'standard' | 'express') =>

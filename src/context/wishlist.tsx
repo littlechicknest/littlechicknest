@@ -2,13 +2,14 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { toast } from '../components/ui'
 
 const KEY = 'lcn-wishlist-v1'
+const MAX = 200
 type State = { ids: string[]; has: (id: string) => boolean; toggle: (id: string, title?: string) => void }
 const Ctx = createContext<State | null>(null)
 
 function read(): string[] {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) ?? '[]')
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 200) : []
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, MAX) : []
   } catch {
     return []
   }
@@ -32,6 +33,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     has: (id) => ids.includes(id),
     toggle: (id, title) => {
       const adding = !ids.includes(id)
+      if (adding && ids.length >= MAX) return toast(`Your wishlist is full (${MAX} items). Remove one to save this.`)
       setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [id, ...prev]))
       toast(adding ? `${title ?? 'Item'} saved to your wishlist` : 'Removed from your wishlist', adding ? { label: 'View', to: '/wishlist' } : undefined)
     },

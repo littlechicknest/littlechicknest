@@ -46,7 +46,7 @@ export function ItemRow({ it, children }: { it: OrderItem; children?: React.Reac
   const img = imgSrc(it.image)
   return (
     <li className="flex gap-4 py-4">
-      <Link to={`/product/${it.product_id}`} className="relative size-[72px] shrink-0 overflow-hidden rounded-lg border border-line bg-paper">
+      <Link to={`/product/${it.product_id}`} tabIndex={-1} aria-hidden className="relative size-[72px] shrink-0 overflow-hidden rounded-lg border border-line bg-paper">
         {img && <img src={img} alt="" className="size-full object-cover" loading="lazy" />}
       </Link>
       <div className="min-w-0 flex-1">
