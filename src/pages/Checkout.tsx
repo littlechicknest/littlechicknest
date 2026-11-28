@@ -51,15 +51,17 @@ export default function Checkout() {
   const [save, setSave] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const prefilled = useRef(false)
+  const prefilled = useRef<string | null>(null) // the account the address was prefilled for
   const edited = useRef(false)
   const uidRef = useRef<string | undefined>(undefined)
   const formRef = useRef<HTMLFormElement>(null)
 
   // prefill from the saved address, otherwise the last order's address
   useEffect(() => {
-    if (!session || prefilled.current || authLoading) return
-    prefilled.current = true
+    if (!session || authLoading || prefilled.current === session.user.id) return
+    // another account signed in (e.g. in another tab): drop the previous person's address before prefilling
+    if (prefilled.current) { setAddr(EMPTY_ADDRESS); setTouched({}); edited.current = false }
+    prefilled.current = session.user.id
     const saved = asAddress(profile?.default_address)
     if (saved?.line1) { setAddr({ ...saved, phone: saved.phone || profile?.phone || '' }); return }
     setAddr((a) => ({ ...a, name: profile?.full_name ?? '', phone: profile?.phone ?? '' }))
@@ -260,6 +262,7 @@ export default function Checkout() {
                 <Lock className="size-4" aria-hidden />
                 {busy ? 'Placing your order…' : cfg?.checkout_mode === 'live' ? `Continue to secure payment · ${formatUsd(total)}` : `Place test order · ${formatUsd(total)}`}
               </button>
+              {!cfg && <p className="mt-2 text-center text-[13px] text-muted" role="status">Loading delivery prices… If this doesn’t go away, refresh the page.</p>}
               <p className="text-center text-xs text-muted">By placing your order you agree to our <Link to="/terms" className="underline">Terms</Link> and <Link to="/privacy-policy" className="underline">Privacy Policy</Link>.</p>
             </form>
           )}

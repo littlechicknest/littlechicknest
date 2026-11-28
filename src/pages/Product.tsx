@@ -130,7 +130,9 @@ function Gallery({ images, alt, model, in3d, set3d }: { images: string[]; alt: s
 
 const ADULT_GUIDE = [['XS', '34–36', '27'], ['S', '36–38', '28'], ['M', '38–40', '29'], ['L', '40–42', '30'], ['XL', '42–44', '31'], ['2XL', '44–46', '32']]
 const KIDS_GUIDE = [['3-4Y', '39–41', '98–104'], ['3-5Y', '39–43', '98–110'], ['5-6Y', '41–45', '110–116'], ['6-8Y', '45–50', '116–128'], ['7-8Y', '45–50', '122–128'], ['9-10Y', '50–55', '134–140'], ['9-12Y', '50–60', '134–152'], ['11-12Y', '55–60', '146–152']]
-function SizeGuide({ sizes, tables }: { sizes: string[]; tables: string[][][] }) {
+function SizeGuide({ sizes, tables: raw }: { sizes: string[]; tables: string[][][] }) {
+  // stored JSON is unchecked: skip tables without a header row so a bad one can't crash the page
+  const tables = (Array.isArray(raw) ? raw : []).filter((t) => Array.isArray(t) && Array.isArray(t[0]))
   if (tables.length) return (
     <div className="space-y-5">
       {tables.map((t, i) => (
@@ -234,7 +236,7 @@ function ProductView({ product }: { product: P }) {
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
             <p className="text-2xl font-semibold text-olive">{price}</p>
             {product.rating_count > 0 && product.rating_avg != null && (
-              <a href="#reviews" className="flex items-center gap-1.5 text-sm text-muted hover:text-olive"><Stars value={product.rating_avg} /> {product.rating_count} review{product.rating_count === 1 ? '' : 's'}</a>
+              <button type="button" title="Jump to reviews" onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })} className="flex items-center gap-1.5 text-sm text-muted hover:text-olive"><Stars value={product.rating_avg} /> {product.rating_count} review{product.rating_count === 1 ? '' : 's'}</button>
             )}
           </div>
           {cfg && cfg.free_shipping_over > 0 && <p className="mt-1 text-[13px] text-muted">Free standard delivery on orders over {formatMoney(cfg.free_shipping_over)}</p>}

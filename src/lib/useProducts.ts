@@ -1,6 +1,6 @@
 import { setRates, usdRate } from './currency'
 import { useEffect, useState } from 'react'
-import { asModels, asPrices, asVariants, DEFAULT_CONFIG, safeUrl, type Product, type ShopConfig } from './shop'
+import { asModels, asPrices, asVariants, safeUrl, type Product, type ShopConfig } from './shop'
 import { supabase } from './supabase'
 
 // shortcut: loads the whole active catalog once per page load; move to paginated RPC past ~500 products
@@ -56,24 +56,31 @@ function storedConfig(): ShopConfig | null {
   } catch { return null }
 }
 let latest = storedConfig()
-let configCache: Promise<ShopConfig> | null = null
+let configCache: Promise<ShopConfig | null> | null = null
+const configLoaded = new Set<(c: ShopConfig) => void>()
+/** The shop's real settings, or null until they load. Never guessed: checkout needs the same delivery prices and
+ *  payment mode as the server, so it waits (a later successful load reaches every mounted hook). */
 export function useShopConfig() {
   const [cfg, setCfg] = useState<ShopConfig | null>(latest)
   useEffect(() => {
     let active = true
+    const ok = (c: ShopConfig | null) => { if (active && c) setCfg(c) }
+    configLoaded.add(ok)
     configCache ??= Promise.resolve(supabase.rpc('shop_config')).then(({ data }) => {
       const r = data?.[0]
-      if (!r) { configCache = null; return latest ?? DEFAULT_CONFIG }
+      if (!r) { configCache = null; return latest }
       latest = {
         shipping_flat: Number(r.shipping_flat), free_shipping_over: Number(r.free_shipping_over),
         express_shipping: Number(r.express_shipping), checkout_mode: r.checkout_mode === 'live' ? 'live' : 'test',
         site_images: Object.fromEntries(Object.entries(r.site_images ?? {}).filter(([, u]) => safeUrl(u))),
       }
       try { localStorage.setItem(CONFIG_KEY, JSON.stringify(latest)) } catch { /* storage blocked */ }
+      const fresh = latest
+      configLoaded.forEach((f) => f(fresh))
       return latest
-    })
-    configCache.then((c) => active && setCfg(c))
-    return () => { active = false }
+    }, () => { configCache = null; return latest })
+    configCache.then(ok)
+    return () => { active = false; configLoaded.delete(ok) }
   }, [])
   return cfg
 }
