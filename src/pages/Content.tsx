@@ -64,7 +64,7 @@ const FAQS: [string, string, ReactNode][] = [
   ['Orders', 'How long will my order take?', 'Every item is made just for you. Printing and embroidery take 2–4 working days, then standard delivery is usually 3–7 working days (express 2–3). Your order page shows an estimated delivery date.'],
   ['Orders', 'How do I track my order?', <>Sign in and open <Link to="/orders">My orders</Link>. You’ll see each step from the print room to your door, and a tracking number once your parcel ships.</>],
   ['Orders', 'Can I change or cancel my order?', <>Because items are made to order, we can only change or cancel before production starts. Email <Mail /> as soon as possible with your order number.</>],
-  ['Delivery', 'How much is delivery?', 'Standard delivery is a small flat rate and free on orders over $75. Express delivery is available at checkout. Prices are always shown before you pay.'],
+  ['Delivery', 'How much is delivery?', 'Standard delivery is a small flat rate, and free once your basket reaches the free-delivery amount shown in your basket. Express delivery is available at checkout. Prices are always shown before you pay.'],
   ['Delivery', 'Where do you deliver?', 'We deliver to the US, UK, Ireland, Canada, Australia, New Zealand and most of Europe. You’ll see the full list at checkout.'],
   ['Returns', 'What if my item arrives damaged or wrong?', <>We’re sorry! Email <Mail /> within 30 days with your order number and a photo, and we’ll send a free replacement or a refund. See <Link to="/shipping-returns">Shipping & returns</Link>.</>],
   ['Products', 'How do sizes fit?', 'Our hoodies and sweatshirts have a relaxed, unisex fit. Each product page has a size guide. If you’re between sizes, size up for a cosier fit.'],
@@ -119,7 +119,7 @@ export function ShippingReturns() {
       <p>Every item is printed or embroidered on demand by our print partner once you order. Production usually takes 2–4 working days.</p>
       <h2>Delivery</h2>
       <ul>
-        <li><strong>Standard:</strong> usually 3–7 working days after production. Free on orders over $75.</li>
+        <li><strong>Standard:</strong> usually 3–7 working days after production. Free once your basket reaches the free-delivery amount shown in your basket.</li>
         <li><strong>Express:</strong> usually 2–3 working days after production.</li>
       </ul>
       <p>Exact prices are shown at checkout before you pay. Delivery times are estimates and may be longer at busy times or because of customs. Any import duties or taxes charged by your country are your responsibility.</p>
@@ -144,7 +144,7 @@ export function Terms() {
       <h2>3. Products and prices</h2>
       <ul>
         <li>Products are printed on demand. Colours on screen may differ slightly from the finished item.</li>
-        <li>Prices are shown in US dollars (USD). Shipping and any applicable taxes are shown at checkout before you pay.</li>
+        <li>You pay in US dollars (USD). You can choose to see prices in pounds (GBP) as a guide; the amount charged is always the US dollar total shown at checkout, together with shipping and any applicable taxes, before you pay.</li>
         <li>If we make an obvious pricing error, we may cancel the order and refund you in full.</li>
       </ul>
       <h2>4. Orders and payment</h2>

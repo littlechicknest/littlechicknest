@@ -1,5 +1,5 @@
 import type { ImgHTMLAttributes } from 'react'
-import { useShopConfig } from './useProducts'
+import { useShopConfigState } from './useProducts'
 
 // Pictures the owner can replace in the admin panel (Website photos). Same names as SLOTS in the admin repo.
 const DEFAULTS = {
@@ -16,6 +16,7 @@ export type Slot = keyof typeof DEFAULTS
 
 /** Waits for the settings (remembered between visits), so a replaced picture never flashes the old one. */
 export function SiteImg({ slot, ...rest }: { slot: Slot } & ImgHTMLAttributes<HTMLImageElement>) {
-  const cfg = useShopConfig()
-  return <img {...rest} src={cfg ? cfg.site_images[slot] ?? import.meta.env.BASE_URL + DEFAULTS[slot] : undefined} />
+  const { cfg, failed } = useShopConfigState()
+  const fallback = import.meta.env.BASE_URL + DEFAULTS[slot]
+  return <img {...rest} src={cfg ? cfg.site_images[slot] ?? fallback : failed ? fallback : undefined} />
 }

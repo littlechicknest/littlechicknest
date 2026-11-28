@@ -12,7 +12,7 @@ import {
 } from '../lib/shop'
 import { functionError, supabase } from '../lib/supabase'
 import { useCurrency } from '../lib/currency'
-import { useShopConfig } from '../lib/useProducts'
+import { useShopConfigState } from '../lib/useProducts'
 
 type Method = 'standard' | 'express'
 const REQUIRED: (keyof Address)[] = ['name', 'line1', 'city', 'postal_code', 'country']
@@ -42,7 +42,9 @@ export default function Checkout() {
   useTitle('Checkout')
   const { session, profile, refreshProfile, loading: authLoading } = useAuth()
   const { rows, catalog, subtotal, clear, setOpen } = useCart()
-  const cfg = useShopConfig()
+  // remembered settings could carry an old payment mode or prices: checkout waits for fresh ones
+  const { cfg: anyCfg, fresh, failed: cfgFailed } = useShopConfigState()
+  const cfg = fresh ? anyCfg : null
   const cur = useCurrency()
   const navigate = useNavigate()
   const [addr, setAddr] = useState<Address>(EMPTY_ADDRESS)
@@ -104,7 +106,8 @@ export default function Checkout() {
     setBusy(true)
     const clean = Object.fromEntries(Object.entries(addr).map(([k, v]) => [k, v.trim()])) as Address
     if (save) {
-      await supabase.from('profiles').update({ default_address: clean as unknown as Json, phone: clean.phone || null }).eq('id', session!.user.id)
+      const { error: saveErr } = await supabase.from('profiles').update({ default_address: clean as unknown as Json, phone: clean.phone || null }).eq('id', session!.user.id)
+      if (saveErr) { setBusy(false); return setError('We couldn’t save your default address. Untick “Save as my default address” to continue, or try again.') }
       void refreshProfile()
     }
     const items = rows.map(({ product_id, color, size, quantity }) => ({ product_id, color, size, quantity }))
@@ -262,7 +265,7 @@ export default function Checkout() {
                 <Lock className="size-4" aria-hidden />
                 {busy ? 'Placing your order…' : cfg?.checkout_mode === 'live' ? `Continue to secure payment · ${formatUsd(total)}` : `Place test order · ${formatUsd(total)}`}
               </button>
-              {!cfg && <p className="mt-2 text-center text-[13px] text-muted" role="status">Loading delivery prices… If this doesn’t go away, refresh the page.</p>}
+              {!cfg && <p className="mt-2 text-center text-[13px] text-muted" role="status">{cfgFailed ? 'We couldn’t load delivery prices. Please refresh the page.' : 'Loading delivery prices…'}</p>}
               <p className="text-center text-xs text-muted">By placing your order you agree to our <Link to="/terms" className="underline">Terms</Link> and <Link to="/privacy-policy" className="underline">Privacy Policy</Link>.</p>
             </form>
           )}
@@ -292,6 +295,7 @@ export function CheckoutSuccess() {
   }, [confirmed, clear])
   useEffect(() => {
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) { setOrder(null); return }
+    setOrder(undefined)
     let tries = 0, active = true
     // after Stripe the webhook may land a moment after the redirect, so poll briefly
     const load = () => supabase.from('orders').select('*').eq('id', id).maybeSingle().then(({ data }) => {
@@ -303,7 +307,7 @@ export function CheckoutSuccess() {
     return () => { active = false }
   }, [id])
 
-  if (order === undefined) return <Spinner label="Confirming your order" />
+  if (order === undefined || (order && order.id !== id)) return <Spinner label="Confirming your order" />
   // pending = Stripe hasn't confirmed the payment yet; no order = we couldn't load it
   if (!order || order.status === 'pending') return (
     <div className="container-x py-8">

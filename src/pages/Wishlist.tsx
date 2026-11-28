@@ -15,7 +15,7 @@ export default function Wishlist() {
   const items = ids.flatMap((id) => products?.find((p) => p.id === id) ?? [])
   const summary = items.length ? `${items.length} saved item${items.length === 1 ? '' : 's'}. Saved on this device.` : 'Tap the heart on anything you love to save it here.'
 
-  const grid = loading ? (
+  const grid = loading && ids.length ? (
     <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3">{ids.slice(0, 3).map((id) => <ProductCardSkeleton key={id} />)}</div>
   ) : error && ids.length ? (
     <div className="py-10 text-center"><p className="text-muted">We couldn’t load your saved items. They’re still saved on this device.</p><button type="button" onClick={() => window.location.reload()} className="btn-ghost mt-4">Reload</button></div>

@@ -52,8 +52,10 @@ export default function Login() {
     } else {
       const { error } = await supabase.auth.resetPasswordForEmail(mail, { captchaToken, redirectTo: appUrl() })
       // same message either way so the form can't be used to discover accounts
+      // (an unknown email is not an error, so this never reveals whether an account exists)
       setMsg(error?.status === 429
         ? { tone: 'error', text: TOO_MANY }
+        : error && (error.status ?? 500) >= 500 ? { tone: 'error', text: 'We couldn’t send the reset email just now. Please try again in a moment.' }
         : { tone: 'success', text: 'If an account exists for that email, a reset link is on its way.' })
     }
     setBusy(false)

@@ -132,7 +132,7 @@ const ADULT_GUIDE = [['XS', '34–36', '27'], ['S', '36–38', '28'], ['M', '38�
 const KIDS_GUIDE = [['3-4Y', '39–41', '98–104'], ['3-5Y', '39–43', '98–110'], ['5-6Y', '41–45', '110–116'], ['6-8Y', '45–50', '116–128'], ['7-8Y', '45–50', '122–128'], ['9-10Y', '50–55', '134–140'], ['9-12Y', '50–60', '134–152'], ['11-12Y', '55–60', '146–152']]
 function SizeGuide({ sizes, tables: raw }: { sizes: string[]; tables: string[][][] }) {
   // stored JSON is unchecked: skip tables without a header row so a bad one can't crash the page
-  const tables = (Array.isArray(raw) ? raw : []).filter((t) => Array.isArray(t) && Array.isArray(t[0]))
+  const tables = (Array.isArray(raw) ? raw : []).filter((t) => Array.isArray(t) && t.length > 0 && t.every((r) => Array.isArray(r) && r.length > 0))
   if (tables.length) return (
     <div className="space-y-5">
       {tables.map((t, i) => (

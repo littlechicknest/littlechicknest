@@ -3,12 +3,16 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard'
 import { Alert, Empty, Modal, PageHeader, useTitle } from '../components/ui'
-import { CATEGORY_INFO, categoryLabel, colorFamily, inCategory as isIn, lookOf, matchesSearch, matchVariant, wantedColors, type Product } from '../lib/shop'
+import { CATEGORY_INFO, categoryLabel, colorFamily, formatMoney, inCategory as isIn, lookOf, matchesSearch, matchVariant, wantedColors, type Product } from '../lib/shop'
+import { useCurrency } from '../lib/currency'
 import { useProducts } from '../lib/useProducts'
 
 const SORTS = { featured: 'Featured', new: 'Newest', 'price-asc': 'Price: low to high', 'price-desc': 'Price: high to low', az: 'Name: A to Z' } as const
 type Sort = keyof typeof SORTS
-const PRICES = { under30: ['Under $30', 0, 30], '30to50': ['$30 – $50', 30, 50], over50: ['Over $50', 50, Infinity] } as const
+// bounds stay in USD (what prices are stored in); labels follow the chosen currency
+const PRICES = { under30: ['Under', 0, 30], '30to50': ['', 30, 50], over50: ['Over', 50, Infinity] } as const
+const whole = (usd: number) => formatMoney(usd).replace(/\.00$/, '')
+const priceText = (k: keyof typeof PRICES) => k === 'under30' ? `Under ${whole(30)}` : k === 'over50' ? `Over ${whole(50)}` : `${whole(30)} – ${whole(50)}`
 type PriceKey = keyof typeof PRICES
 const SIZE_ORDER = ['NEWBORN', '6M', '12M', '18M', '24M', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '3-4Y', '3-5Y', '5-6Y', '6-8Y', '7-8Y', '9-10Y', '9-12Y', '11-12Y']
 
@@ -17,6 +21,7 @@ const list = (v: string | null) => (v ? v.split(',').filter(Boolean) : [])
 const TABS = ['Men', 'Women', 'Unisex', 'Kids', 'Accessories'] as const
 
 export default function Shop() {
+  useCurrency() // price filter labels follow the chosen currency
   const [params, setParams] = useSearchParams()
   const category = TABS.find((c) => c === params.get('category')) ?? null
   const look = lookOf(category)
@@ -86,7 +91,7 @@ export default function Shop() {
     ...(q ? [{ label: `“${q}”`, clear: () => set('q', null) }] : []),
     ...colors.map((c) => ({ label: c, clear: () => toggleIn('color', colors, c) })),
     ...sizes.map((s) => ({ label: `Size ${s}`, clear: () => toggleIn('size', sizes, s) })),
-    ...(price ? [{ label: PRICES[price][0], clear: () => set('price', null) }] : []),
+    ...(price ? [{ label: priceText(price), clear: () => set('price', null) }] : []),
   ]
 
   const filters = (
@@ -118,7 +123,7 @@ export default function Shop() {
         <div className="space-y-2">
           {(Object.keys(PRICES) as PriceKey[]).map((k) => (
             <label key={k} className="flex items-center gap-2.5 text-sm">
-              <input type="radio" name="price" checked={price === k} onChange={() => set('price', k)} className="size-4 accent-orange" />{PRICES[k][0]}
+              <input type="radio" name="price" checked={price === k} onChange={() => set('price', k)} className="size-4 accent-orange" />{priceText(k)}
             </label>
           ))}
           {price && <button type="button" onClick={() => set('price', null)} className="text-xs font-medium text-orange-2 underline">Any price</button>}

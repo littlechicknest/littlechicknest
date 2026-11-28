@@ -98,13 +98,15 @@ export function OrderDetail() {
   const { id } = useParams()
   useTitle('Order details')
   const [order, setOrder] = useState<Order | null | undefined>(undefined)
+  const [lookupFailed, setLookupFailed] = useState(false)
   const { add } = useCart()
   const { products, loading: catalogLoading, error: catalogError } = useProducts()
 
   useEffect(() => {
-    supabase.from('orders').select('*').eq('id', id!).maybeSingle().then(({ data }) => setOrder(data as Order | null))
+    supabase.from('orders').select('*').eq('id', id!).maybeSingle().then(({ data, error }) => (error ? setLookupFailed(true) : setOrder(data as Order | null)))
   }, [id])
 
+  if (lookupFailed) return <AccountShell title="Order details"><Alert>We couldn’t load this order. Please refresh the page.</Alert></AccountShell>
   if (order === undefined) return <Spinner />
   if (!order) return <AccountShell title="Order not found"><Empty title="We couldn’t find that order"><Link to="/orders" className="btn-primary mt-2">Back to my orders</Link></Empty></AccountShell>
 

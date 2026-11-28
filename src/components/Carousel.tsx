@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type { Look, Product } from '../lib/shop'
@@ -24,7 +24,9 @@ export function ProductCarousel({ id, title, subtitle, products, viewMore, autop
   const track = useRef<HTMLUListElement>(null)
   const [page, setPage] = useState(0)
   const [pages, setPages] = useState(1)
-  const paused = useRef(false)
+  const hovered = useRef(false)
+  const focused = useRef(false)
+  const [stopped, setStopped] = useState(false) // the shopper's own pause, kept until they press play
   const idleUntil = useRef(0)
   const visible = useRef(false)
 
@@ -66,11 +68,11 @@ export function ProductCarousel({ id, title, subtitle, products, viewMore, autop
   useEffect(() => {
     if (!autoplay || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const t = setInterval(() => {
-      if (paused.current || !visible.current || document.hidden || Date.now() < idleUntil.current) return
+      if (stopped || hovered.current || focused.current || !visible.current || document.hidden || Date.now() < idleUntil.current) return
       go(1)
     }, AUTOPLAY_MS)
     return () => clearInterval(t)
-  }, [autoplay, go])
+  }, [autoplay, go, stopped])
 
   const userTouched = () => { idleUntil.current = Date.now() + 10_000 }
   const count = products?.length ?? 0
@@ -84,6 +86,8 @@ export function ProductCarousel({ id, title, subtitle, products, viewMore, autop
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {viewMore && <Link to={viewMore.to} className="btn-link mr-1 hidden sm:inline-flex">View more <ArrowRight className="size-3.5" aria-hidden /></Link>}
+          {autoplay && <button type="button" onClick={() => setStopped((v) => !v)} aria-pressed={stopped} aria-label={`${stopped ? 'Play' : 'Pause'} ${title}`}
+            className="grid size-9 place-items-center rounded-full border border-sand bg-paper text-olive transition hover:border-orange hover:text-orange">{stopped ? <Play className="size-4" aria-hidden /> : <Pause className="size-4" aria-hidden />}</button>}
           <button type="button" onClick={() => { userTouched(); go(-1) }} aria-controls={`${id}-track`} aria-label={`Previous ${title}`}
             className="grid size-9 place-items-center rounded-full border border-sand bg-paper text-olive transition hover:border-orange hover:text-orange"><ChevronLeft className="size-4" aria-hidden /></button>
           <button type="button" onClick={() => { userTouched(); go(1) }} aria-controls={`${id}-track`} aria-label={`Next ${title}`}
@@ -94,8 +98,8 @@ export function ProductCarousel({ id, title, subtitle, products, viewMore, autop
       <ul
         id={`${id}-track`} ref={track} aria-live="off"
         onScroll={measure} onPointerDown={userTouched} onWheel={userTouched}
-        onMouseEnter={() => { paused.current = true }} onMouseLeave={() => { paused.current = false }}
-        onFocus={() => { paused.current = true }} onBlur={() => { paused.current = false }}
+        onMouseEnter={() => { hovered.current = true }} onMouseLeave={() => { hovered.current = false }}
+        onFocus={() => { focused.current = true }} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) focused.current = false }}
         className="no-scrollbar -mx-1 flex snap-x snap-mandatory scroll-px-1 gap-4 overflow-x-auto scroll-smooth px-1 pb-2 sm:gap-5"
       >
         {!products ? Array.from({ length: 4 }, (_, i) => <li key={i} className={ITEM}><ProductCardSkeleton /></li>)

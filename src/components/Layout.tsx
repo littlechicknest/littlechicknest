@@ -120,9 +120,9 @@ function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void })
   useCurrency()
   const [q, setQ] = useState('')
   const query = useDeferredValue(q.trim().toLowerCase())
-  const { products } = useProducts()
+  const { products, error: catalogError } = useProducts()
   const navigate = useNavigate()
-  const results = useMemo(() => !query ? [] : (products ?? []).filter((p) => matchesSearch({ ...p, description: '' }, query)).slice(0, 6), [products, query])
+  const results = useMemo(() => !query ? [] : (products ?? []).filter((p) => matchesSearch(p, query)).slice(0, 6), [products, query])
 
   if (!open) return null
   const submit = (e: FormEvent) => { e.preventDefault(); onClose(); navigate(`/shop?q=${encodeURIComponent(q.trim())}`) }
@@ -134,10 +134,12 @@ function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void })
           <Search className="size-5 shrink-0 text-muted" aria-hidden />
           <label htmlFor="site-search" className="sr-only">Search products</label>
           <input id="site-search" data-autofocus type="search" value={q} onChange={(e) => setQ(e.target.value)} maxLength={80} autoComplete="off"
-            placeholder="Search hoodies, caps, mugs…" className="min-h-11 flex-1 bg-transparent text-lg outline-none placeholder:text-muted/60" />
+            placeholder="Search hoodies, caps, mugs…" className="min-h-11 flex-1 rounded-md bg-transparent px-1 text-lg placeholder:text-muted/60 focus-visible:outline-2 focus-visible:outline-orange" />
           <button type="button" onClick={onClose} className="rounded-md px-2 py-1 text-xs font-semibold text-muted uppercase hover:bg-cream">Esc</button>
         </form>
-        {!query ? (
+        {query && catalogError ? <p className="py-8 text-center text-muted">We couldn’t load the shop right now. Please refresh the page.</p>
+        : query && !products ? <p className="py-8 text-center text-muted" role="status">Searching…</p>
+        : !query ? (
           <div className="pt-4">
             <p className="label-caps mb-2">Popular</p>
             <div className="flex flex-wrap gap-2">
@@ -199,7 +201,7 @@ function CurrencySwitch() {
     <label className="relative grid h-11 place-items-center rounded-full px-1 text-olive hover:bg-orange-soft">
       <span className="sr-only">Show prices in</span>
       <select value={cur} onChange={(e) => setCurrency(e.target.value as Currency)}
-        className="h-11 cursor-pointer appearance-none bg-transparent px-2 text-sm font-semibold outline-none">
+        className="h-11 cursor-pointer appearance-none rounded-full bg-transparent px-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-orange">
         {CURRENCIES.map((c) => <option key={c} value={c}>{c === 'GBP' ? '£ GBP' : '$ USD'}</option>)}
       </select>
     </label>

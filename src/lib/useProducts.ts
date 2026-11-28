@@ -1,5 +1,5 @@
 import { setRates, usdRate } from './currency'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { asModels, asPrices, asVariants, safeUrl, type Product, type ShopConfig } from './shop'
 import { supabase } from './supabase'
 
@@ -55,32 +55,41 @@ function storedConfig(): ShopConfig | null {
     return c?.site_images ? c : null
   } catch { return null }
 }
-let latest = storedConfig()
-let configCache: Promise<ShopConfig | null> | null = null
-const configLoaded = new Set<(c: ShopConfig) => void>()
-/** The shop's real settings, or null until they load. Never guessed: checkout needs the same delivery prices and
- *  payment mode as the server, so it waits (a later successful load reaches every mounted hook). */
-export function useShopConfig() {
-  const [cfg, setCfg] = useState<ShopConfig | null>(latest)
-  useEffect(() => {
-    let active = true
-    const ok = (c: ShopConfig | null) => { if (active && c) setCfg(c) }
-    configLoaded.add(ok)
-    configCache ??= Promise.resolve(supabase.rpc('shop_config')).then(({ data }) => {
-      const r = data?.[0]
-      if (!r) { configCache = null; return latest }
-      latest = {
-        shipping_flat: Number(r.shipping_flat), free_shipping_over: Number(r.free_shipping_over),
-        express_shipping: Number(r.express_shipping), checkout_mode: r.checkout_mode === 'live' ? 'live' : 'test',
-        site_images: Object.fromEntries(Object.entries(r.site_images ?? {}).filter(([, u]) => safeUrl(u))),
-      }
-      try { localStorage.setItem(CONFIG_KEY, JSON.stringify(latest)) } catch { /* storage blocked */ }
-      const fresh = latest
-      configLoaded.forEach((f) => f(fresh))
-      return latest
-    }, () => { configCache = null; return latest })
-    configCache.then(ok)
-    return () => { active = false; configLoaded.delete(ok) }
-  }, [])
-  return cfg
+type ConfigState = {
+  /** last known settings: fresh from the server, or remembered from an earlier visit (fine for display) */
+  cfg: ShopConfig | null
+  /** loaded from the server during this page load: required before anything depends on the payment mode or prices */
+  fresh: boolean
+  /** the last request failed (a later mount retries) */
+  failed: boolean
 }
+let cfgState: ConfigState = { cfg: storedConfig(), fresh: false, failed: false }
+const cfgSubs = new Set<() => void>()
+const setCfgState = (s: ConfigState) => { cfgState = s; cfgSubs.forEach((f) => f()) }
+const subscribeCfg = (f: () => void) => { cfgSubs.add(f); return () => { cfgSubs.delete(f) } }
+let cfgLoading = false
+
+function loadConfig() {
+  if (cfgLoading || cfgState.fresh) return
+  cfgLoading = true
+  Promise.resolve(supabase.rpc('shop_config')).then(({ data, error }) => {
+    const r = data?.[0]
+    if (error || !r) return setCfgState({ ...cfgState, failed: true })
+    const cfg: ShopConfig = {
+      shipping_flat: Number(r.shipping_flat), free_shipping_over: Number(r.free_shipping_over),
+      express_shipping: Number(r.express_shipping), checkout_mode: r.checkout_mode === 'live' ? 'live' : 'test',
+      site_images: Object.fromEntries(Object.entries(r.site_images ?? {}).filter(([, u]) => safeUrl(u))),
+    }
+    try { localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)) } catch { /* storage blocked */ }
+    setCfgState({ cfg, fresh: true, failed: false })
+  }, () => setCfgState({ ...cfgState, failed: true })).finally(() => { cfgLoading = false })
+}
+
+/** Shop settings with their load status. Every mounted hook sees a later successful load. */
+export function useShopConfigState(): ConfigState {
+  const s = useSyncExternalStore(subscribeCfg, () => cfgState)
+  useEffect(loadConfig, [])
+  return s
+}
+/** Shop settings for display (may be remembered from an earlier visit until fresh ones arrive). */
+export const useShopConfig = () => useShopConfigState().cfg

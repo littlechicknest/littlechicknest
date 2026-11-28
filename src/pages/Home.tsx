@@ -188,7 +188,7 @@ export default function Home() {
   }, [products])
   const counts = Object.fromEntries(Object.entries(byCat).map(([k, v]) => [k, v.length]))
 
-  const carousel = (s: (typeof SECTIONS)[number]) => products && !byCat[s.cat]?.length ? null : (
+  const carousel = (s: (typeof SECTIONS)[number]) => error || (products && !byCat[s.cat]?.length) ? null : (
     <ProductCarousel key={s.cat} id={`c-${s.cat}`} title={s.title} subtitle={s.subtitle} look={lookOf(s.cat)}
       products={products ? (byCat[s.cat] ?? []).slice(0, 6) : null}
       viewMore={{ to: `/shop?category=${s.cat}`, label: `All ${categoryLabel(s.cat).toLowerCase()}`, image: categorySlot(s.cat) }} />

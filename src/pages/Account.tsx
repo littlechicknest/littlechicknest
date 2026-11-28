@@ -140,9 +140,11 @@ export function Addresses() {
   }
   const remove = async () => {
     setError(null)
+    setBusy(true)
     const { error } = await supabase.from('profiles').update({ default_address: null }).eq('id', session!.user.id)
-    if (error) return setError('Could not remove your address. Please try again.')
+    if (error) { setBusy(false); return setError('Could not remove your address. Please try again.') }
     await refreshProfile()
+    setBusy(false)
     setA({ ...EMPTY_ADDRESS, name: profile?.full_name ?? '' })
     setEditing(true)
     toast('Address removed')
@@ -156,7 +158,7 @@ export function Addresses() {
           <span className="mb-3 inline-block rounded-full bg-orange-soft px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-orange-2 uppercase">Default</span>
           <AddressBlock value={profile?.default_address ?? null} />
           {error && <div className="mt-4"><Alert>{error}</Alert></div>}
-          <div className="mt-5 flex gap-2"><button type="button" onClick={() => { setA(saved!); setError(null); setEditing(true) }} className="btn-dark">Edit</button><button type="button" onClick={remove} className="btn-ghost">Remove</button></div>
+          <div className="mt-5 flex gap-2"><button type="button" onClick={() => { setA(saved!); setError(null); setEditing(true) }} disabled={busy} className="btn-dark">Edit</button><button type="button" onClick={remove} disabled={busy} className="btn-ghost">{busy ? 'Removing…' : 'Remove'}</button></div>
         </div>
       ) : (
         <form onSubmit={save} className="card max-w-2xl space-y-4 p-6">
@@ -171,7 +173,7 @@ export function Addresses() {
             <Field label="Phone" optional><input className="input" type="tel" maxLength={20} autoComplete="tel" value={a.phone} onChange={set('phone')} /></Field>
           </div>
           {error && <Alert>{error}</Alert>}
-          <div className="flex gap-2"><button className="btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save address'}</button>{saved && <button type="button" onClick={() => { setA(saved); setError(null); setEditing(false) }} className="btn-ghost">Cancel</button>}</div>
+          <div className="flex gap-2"><button className="btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save address'}</button>{saved && <button type="button" onClick={() => { setA(saved); setError(null); setEditing(false) }} disabled={busy} className="btn-ghost">Cancel</button>}</div>
         </form>
       )}
     </AccountShell>
@@ -180,7 +182,7 @@ export function Addresses() {
 
 export function Profile() {
   useTitle('Profile details')
-  const { session, profile, refreshProfile } = useAuth()
+  const { session, profile, profileFailed, refreshProfile } = useAuth()
   const [name, setName] = useState(profile?.full_name ?? '')
   const [phone, setPhone] = useState(profile?.phone ?? '')
   const [busy, setBusy] = useState(false)
@@ -200,6 +202,7 @@ export function Profile() {
   const google = session?.user.app_metadata?.provider === 'google'
   return (
     <AccountShell title="Profile details">
+      {profileFailed ? <div className="max-w-xl"><Alert>We couldn’t load your details. Please refresh the page.</Alert></div> : (
       <form onSubmit={save} className="card max-w-xl space-y-4 p-6">
         <Field label="Full name"><input className="input" maxLength={120} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} /></Field>
         <Field label="Email" hint={google ? 'You sign in with Google.' : 'Contact us if you need to change your email.'}><input className="input bg-cream-2/60" value={session?.user.email ?? ''} readOnly /></Field>
@@ -208,6 +211,7 @@ export function Profile() {
         {error && <Alert>{error}</Alert>}
         <button className="btn-primary" disabled={busy || !dirty}>{busy ? 'Saving…' : 'Save changes'}</button>
       </form>
+      )}
     </AccountShell>
   )
 }
