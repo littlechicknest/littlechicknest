@@ -19,11 +19,13 @@ export default function Contact() {
     message: order ? `Order ${order}: ` : '', website: '',
   })
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
+  const [sent, setSent] = useState({ name: '', email: '' }) // what was submitted, even if edited while sending
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (form.website) return setState('done') // honeypot: bots fill hidden fields
     setState('busy')
+    setSent({ name: form.name, email: form.email.trim() })
     const { error } = await supabase.from('contact_messages').insert({
       name: form.name.trim(), email: form.email.trim(), message: `[${form.topic}] ${form.message.trim()}`,
     })
@@ -68,7 +70,7 @@ export default function Contact() {
             <div className="py-6 text-center">
               <span className="mx-auto grid size-14 animate-pop place-items-center rounded-full bg-[#eef6e6] text-2xl">🐣</span>
               <p className="mt-4 font-display text-xl font-bold text-olive">Message sent!</p>
-              <p className="mt-1 text-sm text-muted">Thank you, {form.name.split(' ')[0] || 'friend'}. We’ll reply to {form.email} soon.</p>
+              <p className="mt-1 text-sm text-muted">Thank you, {sent.name.split(' ')[0] || 'friend'}. We’ll reply to {sent.email || 'you'} soon.</p>
               <Link to="/shop" className="btn-ghost mt-5">Back to the shop</Link>
             </div>
           ) : (

@@ -5,10 +5,10 @@ import { useAuth } from '../context/auth'
 import { useCart } from '../context/cart'
 import { useWishlist } from '../context/wishlist'
 import { CURRENCIES, setCurrency, useCurrency, type Currency } from '../lib/currency'
-import { categoryLabel, matchesSearch, matchVariant, priceLabel, productImage, wantedColors } from '../lib/shop'
+import { categoryLabel, formatMoney, matchesSearch, matchVariant, priceLabel, productImage, wantedColors } from '../lib/shop'
 import { SiteImg } from '../lib/siteImages'
 import { supabase } from '../lib/supabase'
-import { useProducts, useRates } from '../lib/useProducts'
+import { useProducts, useRates, useShopConfig } from '../lib/useProducts'
 import { CartDrawer } from './CartDrawer'
 import { Toaster, useOverlay } from './ui'
 
@@ -86,6 +86,15 @@ function DesktopNav() {
 function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const ref = useOverlay(open, onClose)
   const { session } = useAuth()
+  // the menu only exists below the desktop breakpoint: close it (and release the scroll lock) when the window grows
+  useEffect(() => {
+    if (!open) return
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const on = () => { if (mq.matches) onClose() }
+    on()
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [open, onClose])
   if (!open) return null
   return (
     <div className="fixed inset-0 z-[60] lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
@@ -159,20 +168,24 @@ function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void })
 }
 
 const MESSAGES = [
-  'Free standard delivery on orders over $75',
   'Every order helps care for our little flock',
   'Printed to order in 2–4 working days, less waste',
 ]
 function AnnouncementBar() {
-  const [i, setI] = useState(0)
+  const cfg = useShopConfig()
+  useCurrency()
+  // the delivery offer uses the threshold set in Admin, in the shopper's currency (same rule as FreeShippingBar)
+  const messages = cfg && cfg.free_shipping_over > 0 ? [`Free standard delivery on orders over ${formatMoney(cfg.free_shipping_over)}`, ...MESSAGES] : MESSAGES
+  const [n, setI] = useState(0)
+  const i = n % messages.length
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const t = setInterval(() => setI((n) => (n + 1) % MESSAGES.length), 4000)
+    const t = setInterval(() => setI((x) => x + 1), 4000)
     return () => clearInterval(t)
   }, [])
   return (
     <div className="bg-olive text-center text-[12px] font-medium tracking-wide text-white/95">
-      <p key={i} className="container-x animate-fade-in py-2">{MESSAGES[i]}</p>
+      <p key={i} className="container-x animate-fade-in py-2">{messages[i]}</p>
     </div>
   )
 }

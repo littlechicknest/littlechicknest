@@ -1,5 +1,5 @@
 import { ArrowUpRight, ChevronDown, Search } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { isValidElement, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { MAIN_SITE, TrustBadges } from '../components/Layout'
 import { PageHeader, useTitle } from '../components/ui'
@@ -8,6 +8,11 @@ import { SiteImg } from '../lib/siteImages'
 const EMAIL = 'info.littlechicknest@gmail.com'
 const UPDATED = 'November 17, 2026'
 const Mail = () => <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
+/** Plain text of an FAQ answer, including text inside links, so search finds it. */
+const textOf = (n: ReactNode): string =>
+  n == null || typeof n === 'boolean' ? '' : typeof n === 'string' || typeof n === 'number' ? String(n)
+    : Array.isArray(n) ? n.map(textOf).join(' ')
+    : isValidElement(n) ? (n.type === Mail ? EMAIL : textOf((n.props as { children?: ReactNode }).children)) : ''
 
 function LegalPage({ title, children }: { title: string; children: ReactNode }) {
   useTitle(title)
@@ -74,7 +79,7 @@ export function Faq() {
   const [topic, setTopic] = useState<string | null>(null)
   const topics = [...new Set(FAQS.map(([t]) => t))]
   const shown = FAQS.filter(([t, question, a]) => (!topic || t === topic) &&
-    (!q.trim() || (question + ' ' + (typeof a === 'string' ? a : '')).toLowerCase().includes(q.trim().toLowerCase())))
+    (!q.trim() || (question + ' ' + textOf(a)).toLowerCase().includes(q.trim().toLowerCase())))
   return (
     <>
       <PageHeader eyebrow="We’re happy to help" title="Help & FAQ" crumbs={[['Help & FAQ']]}>Quick answers to common questions. Can’t find yours? <Link to="/contact" className="font-semibold text-orange-2 underline">Contact us</Link>.</PageHeader>

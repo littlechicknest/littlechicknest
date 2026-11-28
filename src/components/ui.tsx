@@ -116,6 +116,8 @@ export function Accordion({ title, defaultOpen = false, children }: { title: str
 
 /** Locks page scroll, traps Escape, restores focus. */
 let locks = 0
+// open overlays, newest last: only the top one reacts to Escape and Tab
+const stack: object[] = []
 export function useOverlay(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLElement | null>(null)
   const close = useRef(onClose)
@@ -123,7 +125,10 @@ export function useOverlay(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return
     const prev = document.activeElement as HTMLElement | null
+    const me = {}
+    stack.push(me)
     const onKey = (e: KeyboardEvent) => {
+      if (stack[stack.length - 1] !== me) return
       if (e.key === 'Escape') close.current()
       if (e.key !== 'Tab' || !ref.current) return
       const f = ref.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])')
@@ -142,6 +147,7 @@ export function useOverlay(open: boolean, onClose: () => void) {
     requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>('[data-autofocus],button,input')?.focus())
     return () => {
       document.removeEventListener('keydown', onKey)
+      stack.splice(stack.indexOf(me), 1)
       if (--locks === 0) {
         document.body.style.overflow = ''
         document.body.style.paddingRight = ''

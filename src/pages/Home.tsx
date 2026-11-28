@@ -41,14 +41,16 @@ function Hero() {
   const [i, setI] = useState(0)
   const [playing, setPlaying] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [hover, setHover] = useState(false)
+  const [focused, setFocused] = useState(false) // keyboard users must not have slides change under them
   useEffect(() => {
-    if (!playing || hover) return
+    if (!playing || hover || focused) return
     const t = setTimeout(() => setI((n) => (n + 1) % SLIDES.length), 6000)
     return () => clearTimeout(t)
-  }, [i, playing, hover])
+  }, [i, playing, hover, focused])
 
   return (
     <section aria-roledescription="carousel" aria-label="Featured collections" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      onFocus={() => setFocused(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false) }}
       className="relative overflow-hidden rounded-[1.25rem] border border-line bg-paper shadow-[var(--shadow-soft)]">
       <div className="grid grid-cols-1 md:min-h-[480px] md:grid-cols-[minmax(0,1fr)_1.1fr]">
         {/* every slide's text sits in the same grid cell, so the box is always as tall as the longest slide: no jump between slides.

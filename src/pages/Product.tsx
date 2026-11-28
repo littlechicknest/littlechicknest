@@ -68,6 +68,11 @@ function Gallery({ images, alt, model, in3d, set3d }: { images: string[]; alt: s
   }
 
   const show3d = !!model && (in3d || !images.length)
+  // the photo track remounts at the first photo after 3D view: scroll it back to the selected one
+  useEffect(() => {
+    const el = track.current
+    if (!show3d && el) el.scrollLeft = i * el.clientWidth
+  }, [show3d]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!images.length && !model) return <div className="grid aspect-square place-items-center rounded-[var(--radius-card)] bg-cream-2 text-muted">Image coming soon</div>
   return (
     <div className="lg:sticky lg:top-24">
@@ -313,6 +318,8 @@ function ProductView({ product }: { product: P }) {
 function Reviews({ productId }: { productId: string }) {
   const { session } = useAuth()
   const [reviews, setReviews] = useState<Review[] | null>(null)
+  const [reviewsFailed, setReviewsFailed] = useState(false)
+  const [reviewsTry, setReviewsTry] = useState(0)
   const [writing, setWriting] = useState(false)
   const [rating, setRating] = useState(5)
   const [body, setBody] = useState('')
@@ -320,8 +327,9 @@ function Reviews({ productId }: { productId: string }) {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    supabase.rpc('product_reviews', { p_product_id: productId }).then(({ data }) => setReviews(data ?? []))
-  }, [productId])
+    setReviewsFailed(false)
+    supabase.rpc('product_reviews', { p_product_id: productId }).then(({ data, error }) => (error ? setReviewsFailed(true) : setReviews(data ?? [])))
+  }, [productId, reviewsTry])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -370,7 +378,7 @@ function Reviews({ productId }: { productId: string }) {
           )}
         </div>
         <div>
-          {!reviews ? <Spinner label="Loading reviews" /> : reviews.length === 0 ? (
+          {reviewsFailed ? <p className="text-muted">Reviews couldn’t load. <button type="button" onClick={() => setReviewsTry((n) => n + 1)} className="font-semibold text-orange-2 underline">Try again</button></p> : !reviews ? <Spinner label="Loading reviews" /> : reviews.length === 0 ? (
             <div className="rounded-xl border border-dashed border-sand p-8 text-center text-muted">No reviews yet. Bought this? Be the first to share how you like it.</div>
           ) : (
             <ul className="space-y-4">

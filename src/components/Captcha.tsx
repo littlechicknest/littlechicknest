@@ -4,6 +4,7 @@ type Turnstile = { render: (el: HTMLElement, o: object) => string; reset: (id: s
 const turnstile = () => (window as unknown as { turnstile?: Turnstile }).turnstile
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined
+export const captchaOn = !!SITE_KEY
 
 /** Cloudflare Turnstile check against password bots. Shows only once VITE_TURNSTILE_SITE_KEY is set (and CAPTCHA is on in Supabase). Change `attempt` to ask for a fresh token. */
 export function Captcha({ attempt, onToken }: { attempt: number; onToken: (t: string | undefined) => void }) {

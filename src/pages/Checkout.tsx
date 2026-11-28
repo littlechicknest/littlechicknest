@@ -41,7 +41,7 @@ function Steps({ at }: { at: number }) {
 export default function Checkout() {
   useTitle('Checkout')
   const { session, profile, refreshProfile, loading: authLoading } = useAuth()
-  const { rows, subtotal, clear, setOpen } = useCart()
+  const { rows, catalog, subtotal, clear, setOpen } = useCart()
   const cfg = useShopConfig()
   const cur = useCurrency()
   const navigate = useNavigate()
@@ -122,6 +122,10 @@ export default function Checkout() {
     window.location.assign(data.url)
   }
 
+  if (!rows.length && !busy && catalog === 'loading') return <Spinner label="Loading your basket" />
+  if (!rows.length && !busy && catalog === 'error') return (
+    <div className="container-x py-10"><Steps at={0} /><Empty title="We couldn’t load your basket"><p>Your items are still saved. Check your connection and reload the page.</p><button type="button" onClick={() => window.location.reload()} className="btn-primary mt-4">Reload</button></Empty></div>
+  )
   if (!rows.length && !busy) {
     return (
       <div className="container-x py-10">

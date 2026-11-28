@@ -22,7 +22,7 @@ type FilterKey = keyof typeof FILTERS
 export function Orders() {
   useTitle('My orders')
   const [params, setParams] = useSearchParams()
-  const filter: FilterKey = (params.get('filter') ?? '') in FILTERS ? (params.get('filter') as FilterKey) : 'all'
+  const filter: FilterKey = Object.hasOwn(FILTERS, params.get('filter') ?? '') ? (params.get('filter') as FilterKey) : 'all'
   const [orders, setOrders] = useState<Order[] | null>(null)
   const [error, setError] = useState(false)
   const [q, setQ] = useState('')
@@ -99,7 +99,7 @@ export function OrderDetail() {
   useTitle('Order details')
   const [order, setOrder] = useState<Order | null | undefined>(undefined)
   const { add } = useCart()
-  const { products } = useProducts()
+  const { products, loading: catalogLoading, error: catalogError } = useProducts()
 
   useEffect(() => {
     supabase.from('orders').select('*').eq('id', id!).maybeSingle().then(({ data }) => setOrder(data as Order | null))
@@ -119,6 +119,7 @@ export function OrderDetail() {
     return !!v && (!v.sizes.length || v.sizes.includes(it.size ?? ''))
   }
   const buyAgain = () => {
+    if (catalogError) return toast("We couldn’t load the shop right now. Please refresh and try again.")
     const ok = items.filter(stillSold)
     ok.forEach((it) => add({ product_id: it.product_id, color: it.color, size: it.size, quantity: it.quantity }))
     if (ok.length < items.length) toast(`${items.length - ok.length} item${items.length - ok.length > 1 ? 's are' : ' is'} no longer available`)
@@ -155,7 +156,7 @@ export function OrderDetail() {
         <div className="card px-5 sm:px-6">
           <div className="flex items-center justify-between border-b border-line py-4">
             <h2 className="text-lg">Items</h2>
-            <button type="button" onClick={buyAgain} className="btn-link no-print"><RotateCcw className="size-3.5" aria-hidden /> Buy again</button>
+            <button type="button" onClick={buyAgain} disabled={catalogLoading} className="btn-link no-print disabled:opacity-50"><RotateCcw className="size-3.5" aria-hidden /> Buy again</button>
           </div>
           <ul className="divide-y divide-line">
             {items.map((it, i) => (

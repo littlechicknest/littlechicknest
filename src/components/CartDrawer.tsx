@@ -28,7 +28,7 @@ export function FreeShippingBar({ subtotal }: { subtotal: number }) {
 }
 
 export function CartDrawer() {
-  const { rows, subtotal, open, setOpen, setQuantity, remove, add } = useCart()
+  const { rows, catalog, subtotal, open, setOpen, setQuantity, remove, add } = useCart()
   const cur = useCurrency()
   const close = useCallback(() => setOpen(false), [setOpen])
   const ref = useOverlay(open, close)
@@ -51,7 +51,12 @@ export function CartDrawer() {
           <button type="button" onClick={close} className="-mr-2 rounded-full p-2 text-olive hover:bg-paper" aria-label="Close basket"><X className="size-5" aria-hidden /></button>
         </div>
 
-        {rows.length === 0 ? (
+        {rows.length === 0 && catalog !== 'ready' ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center" role="status">
+            {catalog === 'loading' ? <p className="text-sm text-muted">Loading your basket…</p>
+              : <><p className="font-display text-xl font-bold text-olive">We couldn’t load your basket</p><p className="text-sm text-muted">Your items are still saved. Check your connection and reload the page.</p><button type="button" onClick={() => window.location.reload()} className="btn-ghost">Reload</button></>}
+          </div>
+        ) : rows.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
             <span className="grid size-20 place-items-center rounded-full bg-cream-2"><ShoppingBag className="size-9 text-olive-3" aria-hidden /></span>
             <p className="font-display text-xl font-bold text-olive">Your basket is empty</p>

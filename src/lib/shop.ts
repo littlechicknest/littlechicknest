@@ -166,7 +166,8 @@ export const productImages = (p: Pick<Product, 'images' | 'variants'> & { catego
   const v = p.variants.find((x) => x.color === color) ?? p.variants[0]
   const worn = look && p.category === 'Unisex' ? v?.[look] : undefined
   if (worn?.length) return [...new Set(worn)].map(imgSrc).filter((u): u is string => !!u)
-  const own = v?.by_option?.[size ?? ''] ?? v?.images ?? []
+  const opt = v?.by_option?.[size ?? '']
+  const own = opt?.length ? opt : v?.images ?? []
   // a colour without photos borrows another colour's
   const borrowed = own.length || p.images.length ? [] : p.variants.find((x) => x.images.length)?.images ?? []
   return [...new Set([...own, ...p.images, ...borrowed])].map(imgSrc).filter((u): u is string => !!u)

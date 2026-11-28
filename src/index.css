@@ -58,7 +58,7 @@
 @utility script { @apply font-script font-semibold text-orange; }
 @utility section-title { @apply font-sans text-xl font-bold uppercase tracking-wide text-olive sm:text-2xl; }
 @utility btn { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-5 py-2.5 text-[13px] font-semibold uppercase tracking-wider whitespace-nowrap transition-[background-color,color,box-shadow,transform] duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-55; }
-@utility btn-primary { @apply btn bg-orange text-white shadow-[0_6px_16px_-6px_rgb(252_91_19/0.55)] hover:bg-[#e94e0a]; }
+@utility btn-primary { @apply btn bg-orange-2 text-white shadow-[0_6px_16px_-6px_rgb(252_91_19/0.55)] hover:bg-[#a83706]; }
 @utility btn-dark { @apply btn bg-olive text-white hover:bg-olive-2; }
 @utility btn-ghost { @apply btn border border-sand bg-paper text-olive hover:border-olive/40 hover:bg-cream; }
 @utility btn-link { @apply inline-flex items-center gap-1 text-[13px] font-semibold uppercase tracking-wider text-orange-2 hover:text-orange; }

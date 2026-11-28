@@ -63,9 +63,10 @@ export function Account() {
   const { session, profile } = useAuth()
   const { ids } = useWishlist()
   const [orders, setOrders] = useState<Order[] | null>(null)
+  const [ordersFailed, setOrdersFailed] = useState(false)
   useEffect(() => {
     supabase.from('orders').select(LIST_COLS).neq('status', 'pending').order('created_at', { ascending: false }).limit(50)
-      .then(({ data }) => setOrders((data ?? []) as Order[]))
+      .then(({ data, error }) => (error ? setOrdersFailed(true) : setOrders((data ?? []) as Order[])))
   }, [])
   const first = profile?.full_name?.split(' ')[0]
   const active = orders?.filter((o) => ['paid', 'processing', 'printing', 'shipped'].includes(o.status)).length ?? 0
@@ -91,7 +92,7 @@ export function Account() {
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="card p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between"><h2 className="text-lg">Latest order</h2>{latest && <Link to="/orders" className="btn-link">All orders</Link>}</div>
-          {!orders ? <Spinner /> : !latest ? (
+          {ordersFailed ? <p className="py-6 text-center text-muted">Your orders couldn’t load. Please refresh the page.</p> : !orders ? <Spinner /> : !latest ? (
             <div className="py-6 text-center"><p className="text-muted">You haven’t ordered anything yet.</p><Link to="/shop" className="btn-primary mt-4">Start shopping</Link></div>
           ) : (
             <Link to={`/orders/${latest.id}`} className="block rounded-xl border border-line p-4 transition hover:border-sand hover:bg-cream/50">
@@ -138,7 +139,9 @@ export function Addresses() {
     toast('Address saved')
   }
   const remove = async () => {
-    await supabase.from('profiles').update({ default_address: null }).eq('id', session!.user.id)
+    setError(null)
+    const { error } = await supabase.from('profiles').update({ default_address: null }).eq('id', session!.user.id)
+    if (error) return setError('Could not remove your address. Please try again.')
     await refreshProfile()
     setA({ ...EMPTY_ADDRESS, name: profile?.full_name ?? '' })
     setEditing(true)
@@ -152,7 +155,8 @@ export function Addresses() {
         <div className="card max-w-md p-6">
           <span className="mb-3 inline-block rounded-full bg-orange-soft px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-orange-2 uppercase">Default</span>
           <AddressBlock value={profile?.default_address ?? null} />
-          <div className="mt-5 flex gap-2"><button type="button" onClick={() => setEditing(true)} className="btn-dark">Edit</button><button type="button" onClick={remove} className="btn-ghost">Remove</button></div>
+          {error && <div className="mt-4"><Alert>{error}</Alert></div>}
+          <div className="mt-5 flex gap-2"><button type="button" onClick={() => { setA(saved!); setError(null); setEditing(true) }} className="btn-dark">Edit</button><button type="button" onClick={remove} className="btn-ghost">Remove</button></div>
         </div>
       ) : (
         <form onSubmit={save} className="card max-w-2xl space-y-4 p-6">
@@ -167,7 +171,7 @@ export function Addresses() {
             <Field label="Phone" optional><input className="input" type="tel" maxLength={20} autoComplete="tel" value={a.phone} onChange={set('phone')} /></Field>
           </div>
           {error && <Alert>{error}</Alert>}
-          <div className="flex gap-2"><button className="btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save address'}</button>{saved && <button type="button" onClick={() => setEditing(false)} className="btn-ghost">Cancel</button>}</div>
+          <div className="flex gap-2"><button className="btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save address'}</button>{saved && <button type="button" onClick={() => { setA(saved); setError(null); setEditing(false) }} className="btn-ghost">Cancel</button>}</div>
         </form>
       )}
     </AccountShell>

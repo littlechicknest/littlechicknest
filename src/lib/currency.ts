@@ -36,5 +36,10 @@ export function setRates(r: unknown) {
   emit()
 }
 
-/** Re-renders the calling component when the shown currency changes. */
-export const useCurrency = () => useSyncExternalStore(subscribe, currency, () => 'USD' as Currency)
+// the snapshot includes the rate, so a new rate re-renders prices even when the currency stays the same
+const snapshot = () => `${currency()}:${rates.GBP ?? 0}`
+/** Re-renders the calling component when the shown currency or its rate changes. */
+export const useCurrency = (): Currency => {
+  useSyncExternalStore(subscribe, snapshot, () => 'USD:0')
+  return currency()
+}

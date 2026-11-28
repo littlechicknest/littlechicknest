@@ -20,11 +20,11 @@ export default function Shop() {
   const [params, setParams] = useSearchParams()
   const category = TABS.find((c) => c === params.get('category')) ?? null
   const look = lookOf(category)
-  const sort: Sort = (params.get('sort') ?? '') in SORTS ? (params.get('sort') as Sort) : 'featured'
+  const sort: Sort = Object.hasOwn(SORTS, params.get('sort') ?? '') ? (params.get('sort') as Sort) : 'featured'
   const q = params.get('q') ?? ''
   const colors = list(params.get('color'))
   const sizes = list(params.get('size'))
-  const price = (params.get('price') ?? '') in PRICES ? (params.get('price') as PriceKey) : null
+  const price = Object.hasOwn(PRICES, params.get('price') ?? '') ? (params.get('price') as PriceKey) : null
   const query = useDeferredValue(q.trim().toLowerCase())
   const { products, loading, error } = useProducts()
   const [filtersOpen, setFiltersOpen] = useState(false)

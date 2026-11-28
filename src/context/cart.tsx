@@ -23,6 +23,8 @@ function readStored(): CartLine[] {
 
 type CartState = {
   rows: CartRow[]
+  /** rows are only final once the catalog is 'ready'; until then an empty basket may just be loading */
+  catalog: 'loading' | 'error' | 'ready'
   count: number
   subtotal: number
   open: boolean
@@ -38,7 +40,7 @@ const CartContext = createContext<CartState | null>(null)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>(readStored)
   const [open, setOpen] = useState(false)
-  const { products } = useProducts()
+  const { products, error } = useProducts()
   const clear = useCallback(() => setLines([]), [])
 
   useEffect(() => {
@@ -60,6 +62,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value: CartState = {
     rows,
+    catalog: products ? 'ready' : error ? 'error' : 'loading',
     count: rows.reduce((n, r) => n + r.quantity, 0),
     subtotal: rows.reduce((n, r) => n + r.quantity * r.price, 0),
     open,

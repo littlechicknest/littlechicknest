@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
-import { Captcha } from '../components/Captcha'
+import { Captcha, captchaOn } from '../components/Captcha'
 import { Alert, Field, useTitle } from '../components/ui'
 import { useAuth } from '../context/auth'
 import { SiteImg } from '../lib/siteImages'
@@ -57,7 +57,8 @@ export default function Login() {
         : { tone: 'success', text: 'If an account exists for that email, a reset link is on its way.' })
     }
     setBusy(false)
-    setAttempt((n) => n + 1) // a captcha token works once
+    setCaptchaToken(undefined) // a captcha token works once: wait for the new widget's token
+    setAttempt((n) => n + 1)
   }
 
   const google = async () => {
@@ -122,7 +123,7 @@ export default function Login() {
             )}
             <Captcha attempt={attempt} onToken={setCaptchaToken} />
             {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
-            <button className="btn-primary w-full" disabled={busy}>
+            <button className="btn-primary w-full" disabled={busy || (captchaOn && !captchaToken)}>
               {busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : 'Sign in'}
             </button>
           </form>
