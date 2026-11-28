@@ -13,6 +13,7 @@ type AuthState = {
 }
 
 const AuthContext = createContext<AuthState | null>(null)
+let profileGen = 0
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -22,9 +23,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
 
   const loadProfile = async (s: Session | null) => {
+    const g = ++profileGen // only the newest request may write; sign-out also invalidates pending ones
     if (!s) return setLoaded({ uid: null, profile: null })
     const { data } = await supabase.from('profiles').select('*').eq('id', s.user.id).maybeSingle()
-    setLoaded({ uid: s.user.id, profile: data })
+    if (g === profileGen) setLoaded({ uid: s.user.id, profile: data })
   }
 
   useEffect(() => {

@@ -19,6 +19,8 @@ const REQUIRED: (keyof Address)[] = ['name', 'line1', 'city', 'postal_code', 'co
 // carriers need the state code in these countries (same rule as create-checkout-session)
 const STATE_CODE = ['US', 'CA', 'AU']
 const STEPS = ['Basket', 'Details', 'Payment', 'Done']
+// set when this browser leaves for Stripe; the confirmation page empties the basket once and removes it
+const PAYING_KEY = 'lcn-paying'
 
 function Steps({ at }: { at: number }) {
   return (
@@ -50,6 +52,8 @@ export default function Checkout() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const prefilled = useRef(false)
+  const edited = useRef(false)
+  const uidRef = useRef<string | undefined>(undefined)
   const formRef = useRef<HTMLFormElement>(null)
 
   // prefill from the saved address, otherwise the last order's address
@@ -59,10 +63,16 @@ export default function Checkout() {
     const saved = asAddress(profile?.default_address)
     if (saved?.line1) { setAddr({ ...saved, phone: saved.phone || profile?.phone || '' }); return }
     setAddr((a) => ({ ...a, name: profile?.full_name ?? '', phone: profile?.phone ?? '' }))
-    supabase.from('orders').select('shipping_address').eq('user_id', session.user.id).not('shipping_address', 'is', null)
+    const uid = session.user.id
+    supabase.from('orders').select('shipping_address').eq('user_id', uid).not('shipping_address', 'is', null)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      .then(({ data }) => { const a = asAddress(data?.shipping_address); if (a?.line1) setAddr(a) })
+      .then(({ data }) => {
+        // never replace what the customer has typed meanwhile, or fill in another account's address
+        const a = asAddress(data?.shipping_address)
+        if (a?.line1 && !edited.current && uidRef.current === uid) setAddr(a)
+      })
   }, [session, profile, authLoading])
+  useEffect(() => { uidRef.current = session?.user.id }, [session])
 
   const shipping = cfg ? shippingCost(cfg, subtotal, method) : 0
   const total = subtotal + shipping
@@ -75,7 +85,7 @@ export default function Checkout() {
     return e
   }, [addr])
 
-  const set = (k: keyof Address) => (e: { target: { value: string } }) => setAddr((a) => ({ ...a, [k]: e.target.value }))
+  const set = (k: keyof Address) => (e: { target: { value: string } }) => { edited.current = true; setAddr((a) => ({ ...a, [k]: e.target.value })) }
   const blur = (k: keyof Address) => () => setTouched((t) => ({ ...t, [k]: true }))
   const err = (k: keyof Address) => (touched[k] ? errors[k] : undefined)
 
@@ -108,6 +118,7 @@ export default function Checkout() {
     if (error || !data?.url) { setBusy(false); return setError(error ? await functionError(error) : 'Could not start checkout.') }
     // only ever leave the site for Stripe's hosted checkout
     if (!/^https:\/\/checkout\.stripe\.com\//.test(data.url)) { setBusy(false); return setError('Unexpected checkout address.') }
+    try { localStorage.setItem(PAYING_KEY, '1') } catch { /* storage blocked: basket is then kept after payment */ }
     window.location.assign(data.url)
   }
 
@@ -263,9 +274,15 @@ export function CheckoutSuccess() {
   const { clear } = useCart()
   const [order, setOrder] = useState<Order | null | undefined>(id ? undefined : null)
 
-  // empty the basket only for an order placed just now, not when an old confirmation link is opened
-  const fresh = !!order && Date.now() - new Date(order.created_at).getTime() < 2 * 3600_000
-  useEffect(() => { if (fresh) clear() }, [fresh, clear])
+  // empty the basket once, for the Stripe checkout this browser just started and only after payment is confirmed;
+  // reopening an old confirmation link never clears it (the test path clears before navigating here)
+  const confirmed = !!order && order.status !== 'pending'
+  useEffect(() => {
+    if (!confirmed) return
+    try {
+      if (localStorage.getItem(PAYING_KEY)) { localStorage.removeItem(PAYING_KEY); clear() }
+    } catch { /* storage blocked */ }
+  }, [confirmed, clear])
   useEffect(() => {
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) { setOrder(null); return }
     let tries = 0, active = true

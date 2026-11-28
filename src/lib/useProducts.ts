@@ -12,10 +12,13 @@ function load(): Promise<Product[]> {
       cache = null
       throw error
     }
-    return (data ?? []).map((p) => ({ ...p, price: Number(p.price), prices: asPrices(p.prices), variants: asVariants(p.variants), size_guide: p.size_guide as unknown as string[][][], models: asModels(p.models) }))
+    const list = (data ?? []).map((p) => ({ ...p, price: Number(p.price), prices: asPrices(p.prices), variants: asVariants(p.variants), size_guide: p.size_guide as unknown as string[][][], models: asModels(p.models) }))
+    loaded.forEach((f) => f(list)) // a retry that succeeds also reaches hooks whose first load failed (e.g. the cart)
+    return list
   })
   return cache
 }
+const loaded = new Set<(p: Product[]) => void>()
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[] | null>(null)
@@ -23,11 +26,10 @@ export function useProducts() {
 
   useEffect(() => {
     let active = true
-    load().then(
-      (p) => active && setProducts(p),
-      (e: Error) => active && setError(e.message || 'Could not load products'),
-    )
-    return () => { active = false }
+    const ok = (p: Product[]) => { if (active) { setProducts(p); setError(null) } }
+    loaded.add(ok)
+    load().then(ok, (e: Error) => active && setError(e.message || 'Could not load products'))
+    return () => { active = false; loaded.delete(ok) }
   }, [])
 
   return { products, error, loading: !products && !error }
