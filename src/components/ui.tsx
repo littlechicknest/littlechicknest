@@ -115,6 +115,7 @@ export function Accordion({ title, defaultOpen = false, children }: { title: str
 }
 
 /** Locks page scroll, traps Escape, restores focus. */
+let locks = 0
 export function useOverlay(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLElement | null>(null)
   const close = useRef(onClose)
@@ -132,14 +133,19 @@ export function useOverlay(open: boolean, onClose: () => void) {
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
     }
     document.addEventListener('keydown', onKey)
-    const sw = window.innerWidth - document.documentElement.clientWidth
-    document.body.style.overflow = 'hidden'
-    document.body.style.paddingRight = `${sw}px`
+    // count open overlays so closing one doesn't unlock scrolling while another is still open
+    if (locks++ === 0) {
+      const sw = window.innerWidth - document.documentElement.clientWidth
+      document.body.style.overflow = 'hidden'
+      document.body.style.paddingRight = `${sw}px`
+    }
     requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>('[data-autofocus],button,input')?.focus())
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-      document.body.style.paddingRight = ''
+      if (--locks === 0) {
+        document.body.style.overflow = ''
+        document.body.style.paddingRight = ''
+      }
       prev?.focus?.()
     }
   }, [open])

@@ -109,9 +109,17 @@ export function OrderDetail() {
   if (!order) return <AccountShell title="Order not found"><Empty title="We couldn’t find that order"><Link to="/orders" className="btn-primary mt-2">Back to my orders</Link></Empty></AccountShell>
 
   const items = asItems(order.items)
-  const live = new Set((products ?? []).map((p) => p.id))
+  const byId = new Map((products ?? []).map((p) => [p.id, p]))
+  // same rule as the cart: the colour must still exist and the size must still be offered
+  const stillSold = (it: (typeof items)[number]) => {
+    const p = byId.get(it.product_id)
+    if (!p) return false
+    if (!p.variants.length) return true
+    const v = p.variants.find((x) => x.color === it.color)
+    return !!v && (!v.sizes.length || v.sizes.includes(it.size ?? ''))
+  }
   const buyAgain = () => {
-    const ok = items.filter((it) => live.has(it.product_id))
+    const ok = items.filter(stillSold)
     ok.forEach((it) => add({ product_id: it.product_id, color: it.color, size: it.size, quantity: it.quantity }))
     if (ok.length < items.length) toast(`${items.length - ok.length} item${items.length - ok.length > 1 ? 's are' : ' is'} no longer available`)
   }

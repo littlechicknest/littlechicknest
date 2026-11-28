@@ -360,7 +360,7 @@ export default function Layout() {
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
-      if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) && !t.isContentEditable) { e.preventDefault(); setSearch(true) }
+      if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) && !t.isContentEditable) { e.preventDefault(); setMenu(false); setSearch(true) }
     }
     document.addEventListener('keydown', on)
     return () => document.removeEventListener('keydown', on)
